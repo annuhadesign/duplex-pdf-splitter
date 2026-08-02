@@ -49,22 +49,13 @@ st.sidebar.markdown("---")
 st.sidebar.header("🔢 Volume Oplos")
 jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_value=1, value=1, step=1)
 
-st.sidebar.markdown("---")
-st.sidebar.header("🚨 Mode Darurat (Jika Auto-Sensing Gagal)")
-force_bw_all = st.sidebar.checkbox("Paksa SEMUA Halaman Menjadi BW", value=False)
-
-st.sidebar.markdown("---")
-st.sidebar.header("🎯 Parameter Deteksi Otomatis")
-sensitivitas = st.sidebar.slider("Batas Kontras Warna (Delta RGB/CMYK)", min_value=5, max_value=50, value=25, step=5)
-min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_value=0.01, max_value=5.00, value=0.10, step=0.05)
-
 # Ambil tarif otomatis dari matriks rumus
 rate_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
 rate_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
 rate_finishing_base = PRICING_MATRIX[ukuran_buku]["base_finishing"]
 
 
-# --- FUNGSI PROSES PDF DENGAN CACHE ---
+# --- FUNGSI PROSES PDF DENGAN CACHE (Hanya terpakai di mode Otomatis) ---
 @st.cache_data(show_spinner="Memproses pemisahan halaman PDF...")
 def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
     doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -135,36 +126,77 @@ def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
     return final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes
 
 
-# --- UPLOAD FILE ---
-uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
+# --- PILIHAN MODE INPUT ---
+st.subheader("🛠️ Pilih Metode Input Data")
+mode_input = st.radio("Metode Analisis:", ["Otomatis (Upload PDF & Split File)", "Manual (Input Jumlah Halaman Saja)"], horizontal=True)
 
-if uploaded_file is not None:
-    nama_file_asli = os.path.splitext(uploaded_file.name)[0]
+# Inisialisasi variabel penampung data halaman
+total_pages = 0
+count_warna = 0
+count_bw = 0
+nama_file_asli = "Order_Manual_Litnus"
+final_color_list = []
+final_bw_list = []
+pdf_warna_bytes = None
+pdf_bw_bytes = None
+ready_to_calculate = False
+
+if mode_input == "Otomatis (Upload PDF & Split File)":
+    # Tambahkan parameter deteksi otomatis di bawah radio jika mode otomatis dipilih
+    st.sidebar.markdown("---")
+    st.sidebar.header("🚨 Mode Darurat & Parameter")
+    force_bw_all = st.sidebar.checkbox("Paksa SEMUA Halaman Menjadi BW", value=False)
+    sensitivitas = st.sidebar.slider("Batas Kontras Warna", min_value=5, max_value=50, value=25, step=5)
+    min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_value=0.01, max_value=5.00, value=0.10, step=0.05)
     
+    uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
+    
+    if uploaded_file is not None:
+        nama_file_asli = os.path.splitext(uploaded_file.name)[0]
+        input_bytes = uploaded_file.read()
+        
+        temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
+        total_pages = len(temp_doc)
+        temp_doc.close()
+        
+        st.info(f"📄 File berhasil dimuat: {uploaded_file.name} | Total: {total_pages} Halaman")
+        
+        # Jalankan pemrosesan otomatis
+        final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes = process_and_split_pdf(
+            input_bytes, force_bw_all, sensitivitas, min_color_percentage, mode_cetak, total_pages
+        )
+        count_warna = len(final_color_list)
+        count_bw = len(final_bw_list)
+        ready_to_calculate = True
+
+else:
+    # OPSI INPUT MANUAL
+    st.info("💡 Mode Manual Aktif: Masukkan jumlah halaman secara langsung di bawah.")
+    nama_file_asli = st.text_input("Nama File / Judul Buku", value="Buku_Titipan_Customer")
+    
+    col_in1, col_in2 = st.columns(2)
+    with col_in1:
+        count_warna = st.number_input("Jumlah Halaman WARNA", min_value=0, value=0, step=1)
+    with col_in2:
+        count_bw = st.number_input("Jumlah Halaman HITAM PUTIH (BW)", min_value=0, value=0, step=1)
+        
+    total_pages = count_warna + count_bw
+    ready_to_calculate = total_pages > 0
+
+
+# --- BLOK PROSES KALKULASI UTAMA ---
+if ready_to_calculate:
     # Generate Waktu Terkini Dinamis
     waktu_sekarang = datetime.now()
     str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
     str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
     
-    input_bytes = uploaded_file.read()
-    temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
-    total_pages = len(temp_doc)
-    temp_doc.close()
-    
-    st.info(f"📄 File berhasil dimuat: {uploaded_file.name} | Total: {total_pages} Halaman")
-    
-    # Jalankan pemrosesan
-    final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes = process_and_split_pdf(
-        input_bytes, force_bw_all, sensitivitas, min_color_percentage, mode_cetak, total_pages
-    )
-    
-    # --- LOGIKA KALKULASI BIAYA & DISKON FINISHING ---
     # 1. Biaya Cetak Isi per Buku
-    cost_warna_per_buku = len(final_color_list) * rate_warna
-    cost_bw_per_buku = len(final_bw_list) * rate_bw
+    cost_warna_per_buku = count_warna * rate_warna
+    cost_bw_per_buku = count_bw * rate_bw
     total_isi_per_buku = cost_warna_per_buku + cost_bw_per_buku
     
-    # 2. Perhitungan Diskon Kelipatan 5 (Max 40%, dibatasi sampai 200 eks sesuai kriteria)
+    # 2. Perhitungan Diskon Kelipatan 5 (Max 40%, sampai 200 eks)
     calc_oplos = min(jumlah_cetak, 200)
     persen_diskon = (calc_oplos // 5) * 2
     if persen_diskon > 40:
@@ -174,7 +206,7 @@ if uploaded_file is not None:
     nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
-    # 4. Akumulasi Total Keseluruhan (Isi + Finishing)
+    # 4. Akumulasi Total Keseluruhan
     total_isi_all = total_isi_per_buku * jumlah_cetak
     total_finishing_all = rate_finishing_akhir * jumlah_cetak
     grand_total = total_isi_all + total_finishing_all
@@ -184,13 +216,14 @@ if uploaded_file is not None:
     hemat = cost_full_warna_all - grand_total
     
     # --- TAMPILAN ANALISIS & SIMULASI PROFIT ---
+    st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Total Halaman Warna (Mesin 1)", f"{len(final_color_list)} hlm")
+        st.metric("Total Halaman Warna", f"{count_warna} hlm")
     with col2:
-        st.metric("Total Halaman BW (Mesin 2)", f"{len(final_bw_list)} hlm")
+        st.metric("Total Halaman BW", f"{count_bw} hlm")
     with col3:
         st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
         
@@ -210,18 +243,22 @@ if uploaded_file is not None:
         ]
     })
     
-    with st.expander("👁️ Lihat Rincian Nomor Halaman"):
-        st.write(f"🎨 **Halaman Warna ({len(final_color_list)} hlm):** {final_color_list}")
-        st.write(f"⚫ **Halaman BW ({len(final_bw_list)} hlm):** {final_bw_list}")
-        
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        with st.expander("👁️ Lihat Rincian Nomor Halaman"):
+            st.write(f"🎨 **Halaman Warna ({count_warna} hlm):** {final_color_list}")
+            st.write(f"⚫ **Halaman BW ({count_bw} hlm):** {final_bw_list}")
+            
     # --- GENERATE STRUK TEXT ---
     def format_halaman_list(lst):
         if not lst:
-            return "[]"
+            return "[]" if mode_input == "Otomatis (Upload PDF & Split File)" else "Terhitung dari input manual"
         lines = []
         for i in range(0, len(lst), 15):
             lines.append(", ".join(map(str, lst[i:i+15])))
         return "[\n    " + ",\n    ".join(lines) + "\n   ]"
+
+    text_detail_warna = format_halaman_list(final_color_list) if mode_input == "Otomatis (Upload PDF & Split File)" else "Jumlah halaman diinput manual oleh operator"
+    text_detail_bw = format_halaman_list(final_bw_list) if mode_input == "Otomatis (Upload PDF & Split File)" else "Jumlah halaman diinput manual oleh operator"
 
     struk_text = f"""======================================================================
                     LITNUS PRINTING
@@ -236,21 +273,22 @@ Ukuran Buku  : {ukuran_buku}
 Bahan Kertas : {jenis_kertas}
 Mode Cetak   : {mode_cetak}
 Jumlah Cetak : {jumlah_cetak} eksemplar
+Input Mode   : {mode_input.split()[0]}
 
 ----------------------------------------------------------------------
 RINCIAN HARGA (PER BUKU):
 ----------------------------------------------------------------------
 
-🎨 WARNA ({len(final_color_list)} halaman)
-   Halaman: {format_halaman_list(final_color_list)}
+🎨 WARNA ({count_warna} halaman)
+   Detail  : {text_detail_warna}
    Biaya   : Rp {cost_warna_per_buku:,} (Rp {rate_warna:,}/hal)
 
-⚫ HITAM PUTIH ({len(final_bw_list)} halaman)
-   Halaman: {format_halaman_list(final_bw_list)}
+⚫ HITAM PUTIH ({count_bw} halaman)
+   Detail  : {text_detail_bw}
    Biaya   : Rp {cost_bw_per_buku:,} (Rp {rate_bw:,}/hal)
 
 🟡 BW + FOOTER WARNA (0 halaman) [+20%]
-   Halaman: []
+   Detail  : []
    Biaya   : Rp 0 (Rp {int(rate_bw * 1.2):,}/hal)
 
 ----------------------------------------------------------------------
@@ -286,32 +324,40 @@ Terima kasih atas kunjungan Anda!
     # --- BLOCK EKSPOR & UNDUH ---
     st.subheader("📄 Struk & Pemisah File Siap Cetak")
     
-    col_btn1, col_btn2, col_btn3 = st.columns(3)
-    with col_btn1:
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        with col_btn1:
+            st.download_button(
+                label="📥 Unduh Struk Analisis (.txt)",
+                data=struk_text,
+                file_name=f"Struk_{nama_file_asli}.txt",
+                mime="text/plain",
+                key="btn_txt"
+            )
+        with col_btn2:
+            st.download_button(
+                label="🎨 Download PDF Mesin WARNA",
+                data=pdf_warna_bytes,
+                file_name=f"{nama_file_asli}_Mesin_WARNA.pdf",
+                mime="application/pdf",
+                key="btn_pdf_warna"
+            )
+        with col_btn3:
+            st.download_button(
+                label="⚫ Download PDF Mesin BW",
+                data=pdf_bw_bytes,
+                file_name=f"{nama_file_asli}_Mesin_BW.pdf",
+                mime="application/pdf",
+                key="btn_pdf_bw"
+            )
+    else:
+        # Jika mode manual, hanya tombol unduh struk txt yang muncul (tidak perlu download PDF)
         st.download_button(
-            label="📥 Unduh Struk Analisis (.txt)",
+            label="📥 Unduh Struk Analisis Manual (.txt)",
             data=struk_text,
-            file_name=f"Struk_{nama_file_asli}.txt",
+            file_name=f"Struk_Manual_{nama_file_asli}.txt",
             mime="text/plain",
-            key="btn_txt"
-        )
-        
-    with col_btn2:
-        st.download_button(
-            label="🎨 Download PDF Mesin WARNA",
-            data=pdf_warna_bytes,
-            file_name=f"{nama_file_asli}_Mesin_WARNA.pdf",
-            mime="application/pdf",
-            key="btn_pdf_warna"
-        )
-        
-    with col_btn3:
-        st.download_button(
-            label="⚫ Download PDF Mesin BW",
-            data=pdf_bw_bytes,
-            file_name=f"{nama_file_asli}_Mesin_BW.pdf",
-            mime="application/pdf",
-            key="btn_pdf_bw"
+            key="btn_txt_manual"
         )
             
     st.markdown("---")
