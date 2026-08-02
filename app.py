@@ -29,7 +29,6 @@ min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_val
 uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
 
 if uploaded_file is not None:
-    # Buat nama file asli dan metadata transaksi
     nama_file_asli = os.path.splitext(uploaded_file.name)[0]
     waktu_sekarang = datetime.now()
     str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
@@ -81,7 +80,7 @@ if uploaded_file is not None:
     else:
         pure_color_pages = []
             
-    # 2. Terapkan Logika Duplex Bind jika mode Duplex aktif
+    # 2. Terapkan Logika Duplex Bind
     final_color_list = set(pure_color_pages)
     
     if mode_cetak == "Duplex (Bolak-balik)" and not force_bw_all:
@@ -122,7 +121,6 @@ if uploaded_file is not None:
         "Biaya Produksi": [f"Rp {cost_full_warna:,}", f"Rp {cost_split_duplex:,}"]
     })
     
-    # Tampilkan rincian daftar halaman di interface web
     with st.expander("👁️ Lihat Rincian Halaman Warna & BW"):
         st.write(f"🎨 **Halaman Warna ({len(final_color_list)} hlm):** {final_color_list}")
         st.write(f"⚫ **Halaman BW ({len(final_bw_list)} hlm):** {final_bw_list}")
@@ -131,7 +129,6 @@ if uploaded_file is not None:
     def format_halaman_list(lst):
         if not lst:
             return "[]"
-        # Bikin format bungkus baris per 15 nomor biar gak kepanjangan ke samping
         lines = []
         for i in range(0, len(lst), 15):
             lines.append(", ".join(map(str, lst[i:i+15])))
@@ -194,34 +191,45 @@ Terima kasih atas kunjungan Anda!
         )
         
     with col_btn2:
-        if st.button("🚀 Proses & Split File PDF"):
-            doc_warna = fitz.open()
-            doc_bw = fitz.open()
+        # Proses Splitter langsung dilakukan otomatis saat file di-upload agar user bisa langsung unduh
+        doc_warna = fitz.open()
+        doc_bw = fitz.open()
+        
+        for page_num in range(total_pages):
+            actual_page = page_num + 1
+            if actual_page in final_color_list:
+                doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
+                doc_bw.insert_page(page_num, width=doc[page_num].rect.width, height=doc[page_num].rect.height)
+            else:
+                doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
+                doc_warna.insert_page(page_num, width=doc[page_num].rect.width, height=doc[page_num].rect.height)
+        
+        # Konversi ke biner memori agar bisa didownload langsung di web cloud
+        pdf_warna_bytes = doc_warna.write()
+        pdf_bw_bytes = doc_bw.write()
+        
+        doc_warna.close()
+        doc_bw.close()
+
+        st.write("🎉 **File Pemisah PDF Siap Diunduh:**")
+        
+        # Tombol download file WARNA
+        st.download_button(
+            label="🎨 Download PDF Khusus Mesin WARNA",
+            data=pdf_warna_bytes,
+            file_name=f"{nama_file_asli}_Mesin_WARNA.pdf",
+            mime="application/pdf"
+        )
+        
+        # Tombol download file BW
+        st.download_button(
+            label="⚫ Download PDF Khusus Mesin BW",
+            data=pdf_bw_bytes,
+            file_name=f"{nama_file_asli}_Mesin_BW.pdf",
+            mime="application/pdf"
+        )
             
-            for page_num in range(total_pages):
-                actual_page = page_num + 1
-                
-                if actual_page in final_color_list:
-                    doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
-                    doc_bw.insert_page(page_num, width=doc[page_num].rect.width, height=doc[page_num].rect.height)
-                else:
-                    doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
-                    doc_warna.insert_page(page_num, width=doc[page_num].rect.width, height=doc[page_num].rect.height)
-            
-            file_warna_path = f"{nama_file_asli}_Mesin_WARNA.pdf"
-            file_bw_path = f"{nama_file_asli}_Mesin_BW.pdf"
-            
-            doc_warna.save(file_warna_path)
-            doc_bw.save(file_bw_path)
-            
-            st.success("✅ Berhasil memisahkan file!")
-            st.write(f"📁 **File Warna:** `{file_warna_path}`")
-            st.write(f"📁 **File BW:** `{file_bw_path}`")
-            
-            doc_warna.close()
-            doc_bw.close()
-            
-    # Tampilkan pratinjau struk di bawah
+    st.markdown("---")
     st.markdown("### 📝 Pratinjau Struk Kasir")
     st.code(struk_text, language="text")
     
