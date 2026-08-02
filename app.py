@@ -1,7 +1,7 @@
 import fitz  # PyMuPDF
 import os
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
@@ -188,8 +188,10 @@ else:
 
 # --- BLOK PROSES KALKULASI UTAMA ---
 if ready_to_calculate:
-    waktu_sekarang = datetime.now()
-    str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
+    # Mengunci Zona Waktu WIB (UTC+7)
+    tz_wib = timezone(timedelta(hours=7))
+    waktu_sekarang = datetime.now(tz_wib)
+    str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S WIB")
     str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
     
     # 1. Logika Diskon Kelipatan 4% Berdasarkan Oplos Cetak Isi
