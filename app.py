@@ -25,28 +25,16 @@ st.sidebar.header("🎯 Parameter Deteksi Otomatis")
 sensitivitas = st.sidebar.slider("Batas Kontras Warna (Delta RGB/CMYK)", min_value=5, max_value=50, value=25, step=5)
 min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_value=0.01, max_value=5.00, value=0.10, step=0.05)
 
-# --- UPLOAD FILE ---
-uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
 
-if uploaded_file is not None:
-    nama_file_asli = os.path.splitext(uploaded_file.name)[0]
-    waktu_sekarang = datetime.now()
-    str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
-    str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
-    
-    with open("temp_input.pdf", "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    doc = fitz.open("temp_input.pdf")
-    total_pages = len(doc)
-    
-    st.info(f"📄 File berhasil dimuat: {uploaded_file.name} | Total: {total_pages} Halaman")
-    
+# --- FUNGSI PROSES PDF DENGAN CACHE (SOLUSI ANTI-FREEZE) ---
+@st.cache_data(show_spinner="Memproses pemisahan halaman PDF...")
+def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
+    # Buka dokumen dari bytes memori
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
     pure_color_pages = []
     
-    if not force_bw_all:
-        progress_bar = st.progress(0)
-        for page_num in range(total_pages):
+    if not force_bw:
+        for page_num in range(total_p):
             page = doc[page_num]
             pix = page.get_pixmap(dpi=72)
             samples = pix.samples
@@ -60,7 +48,7 @@ if uploaded_file is not None:
                     r = samples[i]
                     g = samples[i+1]
                     b = samples[i+2]
-                    if abs(r - g) > sensitivitas or abs(r - b) > sensitivitas or abs(g - b) > sensitivitas:
+                    if abs(r - g) > sens or abs(r - b) > sens or abs(g - b) > sens:
                         color_pixel_count += 1
                         
             elif n == 4:  # CMYK
@@ -68,34 +56,71 @@ if uploaded_file is not None:
                     c = samples[i]
                     m = samples[i+1]
                     y = samples[i+2]
-                    if c > sensitivitas or m > sensitivitas or y > sensitivitas:
+                    if c > sens or m > sens or y > sens:
                         color_pixel_count += 1
             
             color_ratio = (color_pixel_count / total_pixels) * 100
-            if color_ratio >= min_color_percentage:
+            if color_ratio >= min_pct:
                 pure_color_pages.append(page_num + 1)
-                
-            progress_bar.progress((page_num + 1) / total_pages)
-        progress_bar.empty()
-    else:
-        pure_color_pages = []
-            
-    # 2. Terapkan Logika Duplex Bind
-    final_color_list = set(pure_color_pages)
     
-    if mode_cetak == "Duplex (Bolak-balik)" and not force_bw_all:
+    # Logika Duplex Bind
+    final_color_set = set(pure_color_pages)
+    if mode == "Duplex (Bolak-balik)" and not force_bw:
         for page in pure_color_pages:
             if page % 2 != 0: 
                 sebaliknya = page + 1
-                if sebaliknya <= total_pages:
-                    final_color_list.add(sebaliknya)
+                if sebaliknya <= total_p:
+                    final_color_set.add(sebaliknya)
             else: 
                 sebaliknya = page - 1
                 if sebaliknya >= 1:
-                    final_color_list.add(sebaliknya)
+                    final_color_set.add(sebaliknya)
                     
-    final_color_list = sorted(list(final_color_list))
-    final_bw_list = [p for p in range(1, total_pages + 1) if p not in final_color_list]
+    final_color_list = sorted(list(final_color_set))
+    final_bw_list = [p for p in range(1, total_p + 1) if p not in final_color_list]
+    
+    # Bikin dokumen pecahan baru murni tanpa halaman kosong
+    doc_warna = fitz.open()
+    doc_bw = fitz.open()
+    
+    for page_num in range(total_p):
+        actual_page = page_num + 1
+        if actual_page in final_color_list:
+            doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
+        else:
+            doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
+            
+    pdf_warna_bytes = doc_warna.write()
+    pdf_bw_bytes = doc_bw.write()
+    
+    doc_warna.close()
+    doc_bw.close()
+    doc.close()
+    
+    return final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes
+
+
+# --- UPLOAD FILE ---
+uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
+
+if uploaded_file is not None:
+    nama_file_asli = os.path.splitext(uploaded_file.name)[0]
+    waktu_sekarang = datetime.now()
+    str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
+    str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
+    
+    # Baca data biner awal untuk hitung total halaman awal
+    input_bytes = uploaded_file.read()
+    temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
+    total_pages = len(temp_doc)
+    temp_doc.close()
+    
+    st.info(f"📄 File berhasil dimuat: {uploaded_file.name} | Total: {total_pages} Halaman")
+    
+    # Panggil fungsi ber-cache
+    final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes = process_and_split_pdf(
+        input_bytes, force_bw_all, sensitivitas, min_color_percentage, mode_cetak, total_pages
+    )
     
     # Hitung Biaya
     cost_full_warna = total_pages * rate_warna
@@ -181,52 +206,34 @@ Terima kasih atas kunjungan Anda!
     # --- BLOCK EKSPOR & UNDUH ---
     st.subheader("📄 Struk & Pemisah File Siap Cetak")
     
-    col_btn1, col_btn2 = st.columns(2)
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
     with col_btn1:
         st.download_button(
             label="📥 Unduh Struk Analisis (.txt)",
             data=struk_text,
             file_name=f"Struk_{nama_file_asli}.txt",
-            mime="text/plain"
+            mime="text/plain",
+            key="btn_txt"
         )
         
     with col_btn2:
-        doc_warna = fitz.open()
-        doc_bw = fitz.open()
-        
-        # Ekstrak halaman murni tanpa menyelipkan lembar kosong
-        for page_num in range(total_pages):
-            actual_page = page_num + 1
-            if actual_page in final_color_list:
-                doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
-            else:
-                doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
-        
-        pdf_warna_bytes = doc_warna.write()
-        pdf_bw_bytes = doc_bw.write()
-        
-        doc_warna.close()
-        doc_bw.close()
-
-        st.write("🎉 **File Pemisah PDF Siap Diunduh (Tanpa Halaman Kosong):**")
-        
         st.download_button(
-            label="🎨 Download PDF Khusus Mesin WARNA",
+            label="🎨 Download PDF Mesin WARNA",
             data=pdf_warna_bytes,
             file_name=f"{nama_file_asli}_Mesin_WARNA.pdf",
-            mime="application/pdf"
+            mime="application/pdf",
+            key="btn_pdf_warna"
         )
         
+    with col_btn3:
         st.download_button(
-            label="⚫ Download PDF Khusus Mesin BW",
+            label="⚫ Download PDF Mesin BW",
             data=pdf_bw_bytes,
             file_name=f"{nama_file_asli}_Mesin_BW.pdf",
-            mime="application/pdf"
+            mime="application/pdf",
+            key="btn_pdf_bw"
         )
             
     st.markdown("---")
     st.markdown("### 📝 Pratinjau Struk Kasir")
     st.code(struk_text, language="text")
-    
-    doc.close()
-    os.remove("temp_input.pdf")
