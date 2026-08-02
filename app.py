@@ -7,19 +7,47 @@ st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
 st.title("🖨️ Litnus Printing - Duplex-Aware PDF Splitter & Cost Calculator")
 st.write(
-    "Aplikasi produksi untuk memisahkan halaman Warna & BW dengan logika ikatan lembar fisik (Duplex) beserta cetak struk dinamis."
+    "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
 )
 
-# --- SIDEBAR: PENGATURAN BIAYA & TOLERANSI ---
-st.sidebar.header("⚙️ Pengaturan Mesin & Biaya")
+# --- DATABASE RUMUS HARGA (UKURAN & KERTAS) ---
+PRICING_MATRIX = {
+    "A5 (14.8 x 21 cm)": {
+        "base_finishing": 25000,
+        "HVS 70": {"warna": 500, "bw": 150},
+        "BP 57": {"warna": 550, "bw": 180}
+    },
+    "Unesco (15.5 x 23 cm)": {
+        "base_finishing": 27000,
+        "HVS 70": {"warna": 600, "bw": 160},
+        "BP 57": {"warna": 650, "bw": 200}
+    },
+    "B5 ISO (17.6 x 25 cm)": {
+        "base_finishing": 30000,
+        "HVS 70": {"warna": 800, "bw": 180},
+        "BP 57": {"warna": 850, "bw": 210}
+    },
+    "B5 JIS (18.2 x 25.7 cm)": {
+        "base_finishing": 31000,
+        "HVS 70": {"warna": 900, "bw": 190},
+        "BP 57": {"warna": 950, "bw": 220}
+    },
+    "A4 (21 x 29.7 cm)": {
+        "base_finishing": 31000,
+        "HVS 70": {"warna": 1000, "bw": 200},
+        "BP 57": {"warna": 1100, "bw": 250}
+    }
+}
+
+# --- SIDEBAR: PENGATURAN PRODUKSI ---
+st.sidebar.header("📦 Spesifikasi Buku & Cetak")
+ukuran_buku = st.sidebar.selectbox("Ukuran Buku", list(PRICING_MATRIX.keys()))
+jenis_kertas = st.sidebar.selectbox("Jenis Kertas Isi", ["HVS 70", "BP 57"])
 mode_cetak = st.sidebar.selectbox("Mode Cetak", ["Duplex (Bolak-balik)", "Simplex (Satu Sisi)"])
-rate_warna = st.sidebar.number_input("Tarif Klik Warna (Rp)", min_value=0, value=1000, step=50)
-rate_bw = st.sidebar.number_input("Tarif Klik BW (Rp)", min_value=0, value=150, step=50)
 
 st.sidebar.markdown("---")
-st.sidebar.header("📦 Pengaturan Finishing & Oplos")
+st.sidebar.header("🔢 Volume Oplos")
 jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_value=1, value=1, step=1)
-rate_finishing_base = 20000  # Biaya dasar finishing per buku (Cover, Laminasi, Jilid, Wrapping)
 
 st.sidebar.markdown("---")
 st.sidebar.header("🚨 Mode Darurat (Jika Auto-Sensing Gagal)")
@@ -29,6 +57,11 @@ st.sidebar.markdown("---")
 st.sidebar.header("🎯 Parameter Deteksi Otomatis")
 sensitivitas = st.sidebar.slider("Batas Kontras Warna (Delta RGB/CMYK)", min_value=5, max_value=50, value=25, step=5)
 min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_value=0.01, max_value=5.00, value=0.10, step=0.05)
+
+# Ambil tarif otomatis dari matriks rumus
+rate_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
+rate_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
+rate_finishing_base = PRICING_MATRIX[ukuran_buku]["base_finishing"]
 
 
 # --- FUNGSI PROSES PDF DENGAN CACHE ---
@@ -108,7 +141,7 @@ uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
 if uploaded_file is not None:
     nama_file_asli = os.path.splitext(uploaded_file.name)[0]
     
-    # Generate Waktu Terkini secara dinamis saat halaman me-render
+    # Generate Waktu Terkini Dinamis
     waktu_sekarang = datetime.now()
     str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
     str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
@@ -131,8 +164,9 @@ if uploaded_file is not None:
     cost_bw_per_buku = len(final_bw_list) * rate_bw
     total_isi_per_buku = cost_warna_per_buku + cost_bw_per_buku
     
-    # 2. Perhitungan Diskon Kelipatan 5 (Max 40%)
-    persen_diskon = (jumlah_cetak // 5) * 2
+    # 2. Perhitungan Diskon Kelipatan 5 (Max 40%, dibatasi sampai 200 eks sesuai kriteria)
+    calc_oplos = min(jumlah_cetak, 200)
+    persen_diskon = (calc_oplos // 5) * 2
     if persen_diskon > 40:
         persen_diskon = 40
         
@@ -140,7 +174,7 @@ if uploaded_file is not None:
     nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
-    # 4. Akumulasi Total Keseluruhan (Isi + Finishing) dikali Jumlah Oplos
+    # 4. Akumulasi Total Keseluruhan (Isi + Finishing)
     total_isi_all = total_isi_per_buku * jumlah_cetak
     total_finishing_all = rate_finishing_akhir * jumlah_cetak
     grand_total = total_isi_all + total_finishing_all
@@ -162,12 +196,14 @@ if uploaded_file is not None:
         
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     st.table({
-        "Komponen Biaya": [
+        "Spesifikasi Buku & Komponen": [
+            f"Ukuran & Bahan Kertas Isi",
             f"Cetak Isi (Warna & BW) x {jumlah_cetak} Eks", 
             f"Finishing Jilid (Cover, Lam, Wrapping) x {jumlah_cetak} Eks",
             "GRAND TOTAL (Harus Dibayar)"
         ],
-        "Nilai Rupiah": [
+        "Detail Perhitungan": [
+            f"{ukuran_buku} | Kertas {jenis_kertas}",
             f"Rp {total_isi_all:,}", 
             f"Rp {total_finishing_all:,} (Diskon {persen_diskon}%)", 
             f"Rp {grand_total:,}"
@@ -196,6 +232,8 @@ Tanggal      : {str_tanggal}
 No. Transaksi: {str_trx}
 Nama File    : {nama_file_asli}
 Total Halaman: {total_pages}
+Ukuran Buku  : {ukuran_buku}
+Bahan Kertas : {jenis_kertas}
 Mode Cetak   : {mode_cetak}
 Jumlah Cetak : {jumlah_cetak} eksemplar
 
@@ -232,7 +270,7 @@ RINCIAN FINISHING & VOLUME:
 💰 TOTAL BAYAR: Rp {grand_total:,}
 ----------------------------------------------------------------------
 
-Harga Dasar per Lembar:
+Harga Dasar per Lembar ({jenis_kertas}):
    • Hitam Putih : Rp {rate_bw:,}
    • Warna       : Rp {rate_warna:,}
 
