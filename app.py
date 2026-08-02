@@ -191,29 +191,25 @@ Terima kasih atas kunjungan Anda!
         )
         
     with col_btn2:
-        # Proses Splitter langsung dilakukan otomatis saat file di-upload agar user bisa langsung unduh
         doc_warna = fitz.open()
         doc_bw = fitz.open()
         
+        # Ekstrak halaman murni tanpa menyelipkan lembar kosong
         for page_num in range(total_pages):
             actual_page = page_num + 1
             if actual_page in final_color_list:
                 doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
-                doc_bw.insert_page(page_num, width=doc[page_num].rect.width, height=doc[page_num].rect.height)
             else:
                 doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
-                doc_warna.insert_page(page_num, width=doc[page_num].rect.width, height=doc[page_num].rect.height)
         
-        # Konversi ke biner memori agar bisa didownload langsung di web cloud
         pdf_warna_bytes = doc_warna.write()
         pdf_bw_bytes = doc_bw.write()
         
         doc_warna.close()
         doc_bw.close()
 
-        st.write("🎉 **File Pemisah PDF Siap Diunduh:**")
+        st.write("🎉 **File Pemisah PDF Siap Diunduh (Tanpa Halaman Kosong):**")
         
-        # Tombol download file WARNA
         st.download_button(
             label="🎨 Download PDF Khusus Mesin WARNA",
             data=pdf_warna_bytes,
@@ -221,7 +217,6 @@ Terima kasih atas kunjungan Anda!
             mime="application/pdf"
         )
         
-        # Tombol download file BW
         st.download_button(
             label="⚫ Download PDF Khusus Mesin BW",
             data=pdf_bw_bytes,
