@@ -254,14 +254,11 @@ if ready_to_calculate:
     # --- GENERATE STRUK TEXT ---
     def format_halaman_list(lst):
         if not lst:
-            return "[]" if mode_input == "Otomatis (Upload PDF & Split File)" else "Terhitung dari input manual"
+            return "[]"
         lines = []
         for i in range(0, len(lst), 15):
             lines.append(", ".join(map(str, lst[i:i+15])))
         return "[\n    " + ",\n    ".join(lines) + "\n   ]"
-
-    text_detail_warna = format_halaman_list(final_color_list) if mode_input == "Otomatis (Upload PDF & Split File)" else "Jumlah halaman diinput manual oleh operator"
-    text_detail_bw = format_halaman_list(final_bw_list) if mode_input == "Otomatis (Upload PDF & Split File)" else "Jumlah halaman diinput manual oleh operator"
 
     struk_text = f"""======================================================================
                     LITNUS PRINTING
@@ -277,25 +274,30 @@ Bahan Kertas : {jenis_kertas}
 Jenis Jilid  : {jenis_jilid}
 Mode Cetak   : {mode_cetak}
 Jumlah Cetak : {jumlah_cetak} eksemplar
-Input Mode   : {mode_input.split()[0]}
 
 ----------------------------------------------------------------------
 RINCIAN HARGA (PER BUKU):
 ----------------------------------------------------------------------
 
-🎨 WARNA ({count_warna} halaman)
-   Detail  : {text_detail_warna}
-   Biaya   : Rp {cost_warna_per_buku:,}
+🎨 WARNA ({count_warna} halaman)"""
 
-⚫ HITAM PUTIH ({count_bw} halaman)
-   Detail  : {text_detail_bw}
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        text_detail_warna = format_halaman_list(final_color_list)
+        struk_text += f"\n   Detail  : {text_detail_warna}"
+        
+    struk_text += f"\n   Biaya   : Rp {cost_warna_per_buku:,}\n\n⚫ HITAM PUTIH ({count_bw} halaman)"
+
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        text_detail_bw = format_halaman_list(final_bw_list)
+        struk_text += f"\n   Detail  : {text_detail_bw}"
+        
+    struk_text += f"""
    Biaya   : Rp {cost_bw_per_buku:,}
 
 ----------------------------------------------------------------------
 RINCIAN FINISHING & VOLUME:
 ----------------------------------------------------------------------
 🛠️ FINISHING ({jenis_jilid.upper()})
-   Diskon Oplos: {persen_diskon}% (Kelipatan 5 eks, Maks 40%)
    Biaya Akhir : Rp {rate_finishing_akhir:,}
 
 📊 TOTAL AKUMULASI ({jumlah_cetak} Eks)
@@ -305,12 +307,19 @@ RINCIAN FINISHING & VOLUME:
 ----------------------------------------------------------------------
 💰 TOTAL BAYAR: Rp {grand_total:,}
 ----------------------------------------------------------------------
-Terima kasih atas kunjungan Anda!
-~ Barang yang sudah dibeli tidak dapat ditukar ~
-----------------------------------------------------------------------
 
-*Struk ini sebagai bukti pembayaran yang sah
-*Detail halaman terlampir untuk transparansi perhitungan
+Sebelum Kami proses, silahkan Transfer senilai total biaya di atas 
+atau DP minimal 50% dulu agar orderan diproses. 
+
+Berikut detail rekening kami:
+• Mandiri : 144-00-2306065-7 a/n PT Literasi Nusantara Abadi Grup
+• BCA     : 117-737-3737     a/n PT Literasi Nusantara Abadi Grup
+
+Dan mohon kirimkan bukti otentik setelah transfer.
+
+Terimakasih banyak, semoga diberi keberkahan dan kelancaran 
+dalam hidup.
+----------------------------------------------------------------------
 """
 
     # --- BLOCK EKSPOR & UNDUH ---
