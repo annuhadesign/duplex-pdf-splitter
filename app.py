@@ -217,10 +217,11 @@ if ready_to_calculate:
     nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
-    # 4. Akumulasi Total Keseluruhan
+    # 4. Akumulasi Total Keseluruhan & DP 50%
     total_isi_all = total_isi_per_buku * jumlah_cetak
     total_finishing_all = rate_finishing_akhir * jumlah_cetak
     grand_total = total_isi_all + total_finishing_all
+    nominal_dp = int(grand_total * 0.5)
     
     # Selisih Efisiensi vs Full Warna Standard
     cost_full_warna_all = (total_pages * rate_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
@@ -245,14 +246,16 @@ if ready_to_calculate:
             f"Jilid Cover Buku",
             f"Cetak Isi (Warna & BW) x {jumlah_cetak} Eks", 
             f"Finishing Jilid x {jumlah_cetak} Eks",
-            "GRAND TOTAL (Harus Dibayar)"
+            "PILIHAN 1: GRAND TOTAL (Lunas)",
+            "PILIHAN 2: NOMINAL UANG MUKA (DP 50%)"
         ],
         "Detail Perhitungan": [
             f"{ukuran_buku} | Kertas {jenis_kertas}",
             f"{jenis_jilid}",
             f"Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)", 
             f"Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)", 
-            f"Rp {grand_total:,}"
+            f"Rp {grand_total:,}",
+            f"Rp {nominal_dp:,}"
         ]
     })
     
@@ -315,7 +318,10 @@ RINCIAN FINISHING & VOLUME:
    Total Finishing : Rp {total_finishing_all:,}
 
 ----------------------------------------------------------------------
-💰 TOTAL BAYAR: Rp {grand_total:,}
+💰 OPSI PILIHAN PEMBAYARAN:
+----------------------------------------------------------------------
+ [1] TOTAL LUNAS : Rp {grand_total:,}
+ [2] NOMINAL DP   : Rp {nominal_dp:,} (50% dari total biaya)
 ----------------------------------------------------------------------
 
 Sebelum Kami proses, silahkan Transfer senilai total biaya di atas 
