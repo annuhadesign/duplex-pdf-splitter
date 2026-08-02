@@ -10,7 +10,7 @@ st.write(
     "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
 )
 
-# --- DATABASE RUMUS HARGA (BASE: SOFT COVER) ---
+# --- DATABASE RUMUS HARGA (BASE DUPLEX: PER HALAMAN) ---
 PRICING_MATRIX = {
     "A5 (14.8 x 21 cm)": {
         "base_finishing_soft": 25000,
@@ -50,13 +50,22 @@ st.sidebar.markdown("---")
 st.sidebar.header("🔢 Volume Oplos")
 jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_value=1, value=1, step=1)
 
-# Hitung tarif otomatis berdasarkan Soft Cover vs Hard Cover (+50%)
-rate_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
-rate_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
+# Ambil base rate duplex awal
+base_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
+base_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
 
+# Penyesuaian Mode Cetak Simplex: (Base Duplex * 2) - 25% = Base Duplex * 1.5
+if mode_cetak == "Simplex (Satu Sisi)":
+    rate_warna = int(base_warna * 1.5)
+    rate_bw = int(base_bw * 1.5)
+else:
+    rate_warna = base_warna
+    rate_bw = base_bw
+
+# Hitung tarif otomatis berdasarkan Soft Cover vs Hard Cover (+50%)
 base_soft = PRICING_MATRIX[ukuran_buku]["base_finishing_soft"]
 if jenis_jilid == "Hard Cover":
-    rate_finishing_base = int(base_soft * 1.5)  # Ditambah 50%
+    rate_finishing_base = int(base_soft * 1.5)
 else:
     rate_finishing_base = base_soft
 
@@ -201,7 +210,7 @@ if ready_to_calculate:
         if jumlah_cetak >= tier:
             diskon_isi_persen = (idx + 1) * 4
             
-    # Batasi maksimal diskon isi di 32% sesuai request baru
+    # Batasi maksimal diskon isi di 32%
     if diskon_isi_persen > 32:
         diskon_isi_persen = 32
     
@@ -223,7 +232,7 @@ if ready_to_calculate:
     nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
-    # --- RINGKASAN BARU PER EKSEMPLAR ---
+    # --- RINGKASAN PER EKSEMPLAR ---
     total_harga_per_eks = total_isi_per_buku + rate_finishing_akhir
     
     # 4. Akumulasi Total Keseluruhan & DP 50%
@@ -233,7 +242,7 @@ if ready_to_calculate:
     nominal_dp = int(grand_total * 0.5)
     
     # Selisih Efisiensi vs Full Warna Standard
-    cost_full_warna_all = (total_pages * rate_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
+    cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
     # --- TAMPILAN ANALISIS & SIMULASI PROFIT ---
@@ -259,7 +268,7 @@ if ready_to_calculate:
             "PILIHAN 2: NOMINAL UANG MUKA (DP 50%)"
         ],
         "Detail Perhitungan": [
-            f"{ukuran_buku} | Kertas {jenis_kertas}",
+            f"{ukuran_buku} | Kertas {jenis_kertas} ({mode_cetak})",
             f"{jenis_jilid}",
             f"Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)", 
             f"Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)", 
@@ -298,7 +307,7 @@ Mode Cetak   : {mode_cetak}
 Jumlah Cetak : {jumlah_cetak} eksemplar
 
 ----------------------------------------------------------------------
-RINCIAN HARGA (PER BUKU - SETELAH DISKON OPLOS):
+RINCIAN HARGA (PER BUKU - SETELAH DISKON OPLOS & PENYESUAIAN MODE):
 ----------------------------------------------------------------------
 
 🎨 WARNA ({count_warna} halaman)"""
