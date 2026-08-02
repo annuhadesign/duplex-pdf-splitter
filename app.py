@@ -198,6 +198,10 @@ if ready_to_calculate:
     for idx, tier in enumerate(tiers):
         if jumlah_cetak >= tier:
             diskon_isi_persen = (idx + 1) * 4
+            
+    # Batasi maksimal diskon isi di 32% sesuai request baru
+    if diskon_isi_persen > 32:
+        diskon_isi_persen = 32
     
     # Hitung nilai per halaman setelah dipotong diskon isi
     rate_warna_akhir = int(rate_warna * (1 - diskon_isi_persen / 100))
@@ -289,7 +293,7 @@ Mode Cetak   : {mode_cetak}
 Jumlah Cetak : {jumlah_cetak} eksemplar
 
 ----------------------------------------------------------------------
-RINCIAN HARGA (PER BUKU):
+RINCIAN HARGA (PER BUKU - SETELAH DISKON OPLOS):
 ----------------------------------------------------------------------
 
 🎨 WARNA ({count_warna} halaman)"""
@@ -308,14 +312,14 @@ RINCIAN HARGA (PER BUKU):
    Biaya   : Rp {cost_bw_per_buku:,}
 
 ----------------------------------------------------------------------
-RINCIAN FINISHING & VOLUME:
+RINCIAN AKUMULASI VOLUME PRODUKSI:
 ----------------------------------------------------------------------
-🛠️ FINISHING ({jenis_jilid.upper()})
-   Biaya Akhir : Rp {rate_finishing_akhir:,}
+📝 TOTAL ISI PER EKS : Rp {total_isi_per_buku:,}
+🛠️ FINISHING PER EKS : Rp {rate_finishing_akhir:,} ({jenis_jilid.upper()})
 
-📊 TOTAL AKUMULASI ({jumlah_cetak} Eks)
-   Total Cetak Isi : Rp {total_isi_all:,}
-   Total Finishing : Rp {total_finishing_all:,}
+📊 BREAKDOWN PERKALIAN TOTAL:
+   • Isi Buku  : Rp {total_isi_per_buku:,} x {jumlah_cetak} Eks = Rp {total_isi_all:,}
+   • Finishing : Rp {rate_finishing_akhir:,} x {jumlah_cetak} Eks = Rp {total_finishing_all:,}
 
 ----------------------------------------------------------------------
 💰 OPSI PILIHAN PEMBAYARAN:
