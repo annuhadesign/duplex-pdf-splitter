@@ -221,10 +221,13 @@ if ready_to_calculate:
     nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
+    # --- RINGKASAN BARU PER EKSEMPLAR ---
+    total_harga_per_eks = total_isi_per_buku + rate_finishing_akhir
+    
     # 4. Akumulasi Total Keseluruhan & DP 50%
     total_isi_all = total_isi_per_buku * jumlah_cetak
     total_finishing_all = rate_finishing_akhir * jumlah_cetak
-    grand_total = total_isi_all + total_finishing_all
+    grand_total = total_harga_per_eks * jumlah_cetak
     nominal_dp = int(grand_total * 0.5)
     
     # Selisih Efisiensi vs Full Warna Standard
@@ -316,10 +319,10 @@ RINCIAN AKUMULASI VOLUME PRODUKSI:
 ----------------------------------------------------------------------
 📝 TOTAL ISI PER EKS : Rp {total_isi_per_buku:,}
 🛠️ FINISHING PER EKS : Rp {rate_finishing_akhir:,} ({jenis_jilid.upper()})
+💵 TOTAL HARGA PER EKS: Rp {total_harga_per_eks:,} (Isi + Finishing)
 
-📊 BREAKDOWN PERKALIAN TOTAL:
-   • Isi Buku  : Rp {total_isi_per_buku:,} x {jumlah_cetak} Eks = Rp {total_isi_all:,}
-   • Finishing : Rp {rate_finishing_akhir:,} x {jumlah_cetak} Eks = Rp {total_finishing_all:,}
+📊 PERKALIAN TOTAL VOLUME:
+   Rp {total_harga_per_eks:,} x {jumlah_cetak} Eks = Rp {grand_total:,}
 
 ----------------------------------------------------------------------
 💰 OPSI PILIHAN PEMBAYARAN:
