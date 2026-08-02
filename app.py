@@ -192,19 +192,29 @@ if ready_to_calculate:
     str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S")
     str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
     
-    # 1. Biaya Cetak Isi per Buku
-    cost_warna_per_buku = count_warna * rate_warna
-    cost_bw_per_buku = count_bw * rate_bw
+    # 1. Logika Diskon Kelipatan 4% Berdasarkan Oplos Cetak Isi
+    diskon_isi_persen = 0
+    tiers = [4, 10, 20, 30, 50, 100, 200, 500, 1000]
+    for idx, tier in enumerate(tiers):
+        if jumlah_cetak >= tier:
+            diskon_isi_persen = (idx + 1) * 4
+    
+    # Hitung nilai per halaman setelah dipotong diskon isi
+    rate_warna_akhir = int(rate_warna * (1 - diskon_isi_persen / 100))
+    rate_bw_akhir = int(rate_bw * (1 - diskon_isi_persen / 100))
+    
+    cost_warna_per_buku = count_warna * rate_warna_akhir
+    cost_bw_per_buku = count_bw * rate_bw_akhir
     total_isi_per_buku = cost_warna_per_buku + cost_bw_per_buku
     
-    # 2. Perhitungan Diskon Kelipatan 5 (Max 40%, sampai 200 eks)
-    calc_oplos = min(jumlah_cetak, 200)
-    persen_diskon = (calc_oplos // 5) * 2
-    if persen_diskon > 40:
-        persen_diskon = 40
+    # 2. Perhitungan Diskon Finishing Oplos (Kelipatan 5 eks, Maks 40%)
+    calc_oplos_finishing = min(jumlah_cetak, 200)
+    persen_diskon_finishing = (calc_oplos_finishing // 5) * 2
+    if persen_diskon_finishing > 40:
+        persen_diskon_finishing = 40
         
     # 3. Biaya Finishing Setelah Diskon Oplos
-    nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon / 100))
+    nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
     # 4. Akumulasi Total Keseluruhan
@@ -212,8 +222,8 @@ if ready_to_calculate:
     total_finishing_all = rate_finishing_akhir * jumlah_cetak
     grand_total = total_isi_all + total_finishing_all
     
-    # Selisih Efisiensi vs Full Warna
-    cost_full_warna_all = (total_pages * rate_warna * jumlah_cetak) + (rate_finishing_akhir * jumlah_cetak)
+    # Selisih Efisiensi vs Full Warna Standard
+    cost_full_warna_all = (total_pages * rate_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
     # --- TAMPILAN ANALISIS & SIMULASI PROFIT ---
@@ -226,7 +236,7 @@ if ready_to_calculate:
     with col2:
         st.metric("Total Halaman BW", f"{count_bw} hlm")
     with col3:
-        st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
+        st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna Standard")
         
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     st.table({
@@ -240,8 +250,8 @@ if ready_to_calculate:
         "Detail Perhitungan": [
             f"{ukuran_buku} | Kertas {jenis_kertas}",
             f"{jenis_jilid}",
-            f"Rp {total_isi_all:,}", 
-            f"Rp {total_finishing_all:,} (Diskon {persen_diskon}%)", 
+            f"Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)", 
+            f"Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)", 
             f"Rp {grand_total:,}"
         ]
     })
