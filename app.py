@@ -397,3 +397,12 @@ dalam hidup.
     st.markdown("---")
     st.markdown("### 📝 Pratinjau Struk Kasir")
     st.code(struk_text, language="text")
+
+# --- FOOTER HALAMAN DENGAN TAUTAN INSTAGRAM ---
+st.markdown("---")
+footer_html = """
+    <div style="text-align: center; color: grey; font-size: 14px; padding: 10px 0px;">
+        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: #E1306C; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
+    </div>
+"""
+st.markdown(footer_html, unsafe_allow_html=True)
