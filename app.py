@@ -106,7 +106,7 @@ CSS_LIGHT_MODE = """
         border-right: 1px solid rgba(255, 255, 255, 0.9) !important;
     }
 
-    /* Kartu Metrik dengan Gradien Warna Logo Instagram & Teks Putih */
+    /* Kartu Metrik dengan Gradien Warna Logo Instagram & Memaksa Semua Teks Menjadi Putih */
     div[data-testid="stMetric"] {
         background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%) !important;
         border-radius: 20px !important;
@@ -120,9 +120,16 @@ CSS_LIGHT_MODE = """
         box-shadow: 0 15px 30px rgba(220, 39, 67, 0.35) !important;
     }
     
-    div[data-testid="stMetricLabel"] { color: rgba(255, 255, 255, 0.9) !important; font-weight: 600 !important; }
-    div[data-testid="stMetricValue"] { color: #ffffff !important; font-weight: 800 !important; }
-    div[data-testid="stMetricDelta"] { color: #ffeb3b !important; }
+    /* Memaksa seluruh elemen teks/angka/label di dalam kartu metrik menjadi putih bersih */
+    div[data-testid="stMetric"] *,
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricDelta"],
+    div[data-testid="stMetric"] div,
+    div[data-testid="stMetric"] span,
+    div[data-testid="stMetric"] p {
+        color: #ffffff !important;
+    }
 
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
