@@ -5,10 +5,13 @@ from datetime import datetime, timedelta, timezone
 
 st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
-# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS (KODE CSS LAMA) ---
-CSS_TEMA_1 = """
+# --- INISIALISASI STATE TEMA ---
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "dark"  # Default ke Dark Mode
+
+# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS (DARK MODE) ---
+CSS_DARK_MODE = """
 <style>
-    /* Latar Belakang Gelap dengan Ambient Radial Glow (Hijau & Biru) */
     .stApp {
         background-color: #0a0d14;
         background-image: 
@@ -51,7 +54,7 @@ CSS_TEMA_1 = """
 
     div[data-testid="stMetricLabel"] {
         color: #94a3b8 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.85rem !important;
     }
 
     div[data-testid="stMetricValue"] {
@@ -121,159 +124,194 @@ CSS_TEMA_1 = """
 </style>
 """
 
-# --- DEFINISI CSS TEMA 2: VIBRANT LIQUID GLASS (ACUAN GAMBAR BARU) ---
-CSS_TEMA_2 = """
+# --- DEFINISI CSS TEMA 2: PASTEL LIGHT GLASS (LIGHT MODE SESUAI GAMBAR) ---
+CSS_LIGHT_MODE = """
 <style>
-    /* Background Liquid Organic Gradient (Magenta, Purple, Cyan) */
+    /* Latar Belakang Gradien Pastel Lembut (Cyan -> Soft Purple -> Soft Pink) */
     .stApp {
-        background-color: #0c021a;
+        background-color: #f1f5f9;
         background-image: 
-            radial-gradient(circle at 10% 25%, rgba(0, 183, 255, 0.55) 0%, transparent 45%),
-            radial-gradient(circle at 38% 18%, rgba(157, 0, 255, 0.6) 0%, transparent 50%),
-            radial-gradient(circle at 85% 75%, rgba(255, 0, 166, 0.55) 0%, transparent 55%),
-            radial-gradient(circle at 25% 85%, rgba(140, 40, 255, 0.4) 0%, transparent 45%);
+            linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #fce7f3 100%);
         background-attachment: fixed;
-        color: #f8fafc;
+        color: #1e293b;
     }
 
     h1, h2, h3 {
-        color: #ffffff !important;
+        color: #0f172a !important;
         font-weight: 700 !important;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        letter-spacing: -0.5px;
     }
 
-    /* Ultra Frosted Glassmorphism Sidebar */
+    p, span, label, div {
+        color: #334155;
+    }
+
     section[data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.05) !important;
-        backdrop-filter: blur(28px) saturate(210%);
-        -webkit-backdrop-filter: blur(28px) saturate(210%);
-        border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
+        background: rgba(255, 255, 255, 0.45) !important;
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border-right: 1px solid rgba(255, 255, 255, 0.8) !important;
     }
 
-    /* Glass Overlay Card Metrik */
+    /* Kartu / Metrik Putih Glassmorphic */
     div[data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.08) !important;
-        backdrop-filter: blur(25px) saturate(200%);
-        -webkit-backdrop-filter: blur(25px) saturate(200%);
-        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        background: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.9) !important;
         border-radius: 20px !important;
         padding: 20px !important;
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.35) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 30px -5px rgba(148, 163, 184, 0.18), 0 4px 6px -4px rgba(148, 163, 184, 0.1) !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
 
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-4px);
-        background: rgba(255, 255, 255, 0.14) !important;
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 16px 48px 0 rgba(236, 72, 153, 0.25) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px -5px rgba(236, 72, 153, 0.22) !important;
+        border: 1px solid rgba(244, 114, 182, 0.5) !important;
     }
 
     div[data-testid="stMetricLabel"] {
-        color: #e2e8f0 !important;
-        font-size: 0.9rem !important;
-        font-weight: 500;
+        color: #64748b !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
     }
 
     div[data-testid="stMetricValue"] {
-        color: #38bdf8 !important;
+        color: #d946ef !important;
         font-weight: 800 !important;
-        text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
     }
 
-    /* Form & Input Glass Overlay */
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
     .stNumberInput input,
     div[data-testid="stFileUploader"] {
-        background: rgba(255, 255, 255, 0.07) !important;
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        background: rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(203, 213, 225, 0.8) !important;
         border-radius: 14px !important;
-        color: #ffffff !important;
+        color: #0f172a !important;
     }
 
-    div[data-baseweb="select"] > div:hover,
-    div[data-baseweb="input"] > div:hover {
-        border-color: rgba(244, 114, 182, 0.6) !important;
-    }
-
-    /* Tombol Utama (Magenta Neon Gradient) */
+    /* Tombol Utama Gradien Magenta Pastel */
     .stButton > button {
-        background: linear-gradient(135deg, #f43f5e 0%, #d946ef 100%) !important;
+        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border: none !important;
         border-radius: 14px !important;
         padding: 12px 24px !important;
-        box-shadow: 0 4px 25px rgba(217, 70, 239, 0.45) !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 6px 20px rgba(236, 72, 153, 0.3) !important;
+        transition: all 0.25s ease !important;
     }
 
     .stButton > button:hover {
-        background: linear-gradient(135deg, #fb7185 0%, #e879f9 100%) !important;
-        box-shadow: 0 8px 30px rgba(217, 70, 239, 0.7) !important;
+        background: linear-gradient(135deg, #f43f5e 0%, #a855f7 100%) !important;
+        box-shadow: 0 8px 25px rgba(236, 72, 153, 0.45) !important;
         transform: translateY(-2px) !important;
+        color: #ffffff !important;
     }
 
-    /* Tombol Download Glass */
     .stDownloadButton > button {
-        background: rgba(255, 255, 255, 0.08) !important;
-        backdrop-filter: blur(16px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        background: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
         border-radius: 14px !important;
-        color: #ffffff !important;
+        color: #0f172a !important;
         font-weight: 600 !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 12px rgba(148, 163, 184, 0.12) !important;
+        transition: all 0.25s ease !important;
     }
 
     .stDownloadButton > button:hover {
-        background: rgba(255, 255, 255, 0.18) !important;
-        border-color: rgba(244, 114, 182, 0.5) !important;
-        color: #f472b6 !important;
+        background: #ffffff !important;
+        border-color: #ec4899 !important;
+        color: #ec4899 !important;
     }
 
     pre, code {
-        background: rgba(10, 2, 22, 0.75) !important;
-        backdrop-filter: blur(20px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        background: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
         border-radius: 16px !important;
-        color: #38bdf8 !important;
+        color: #0f172a !important;
     }
 
     div[data-testid="stTable"], div[data-testid="stExpander"] {
-        background: rgba(255, 255, 255, 0.06) !important;
-        backdrop-filter: blur(16px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        background: rgba(255, 255, 255, 0.65) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
         border-radius: 16px !important;
     }
 </style>
 """
 
-# --- HEADER LAYOUT & SWITCH TEMA DI KANAN ATAS ---
-col_header, col_switch = st.columns([3.2, 1.2])
+# --- CSS KHUSUS TOMBOL FLOATING SWITCH TEMA (FIXED SCROLL) ---
+CSS_FLOATING_SWITCH = """
+<style>
+    /* Mengunci posisi tombol switch agar melayang di pojok kanan atas */
+    div.element-container:has(#floating-theme-anchor) + div.element-container {
+        position: fixed !important;
+        top: 20px !important;
+        right: 25px !important;
+        z-index: 999999 !important;
+        width: auto !important;
+    }
 
-with col_switch:
-    pilihan_tema = st.selectbox(
-        "🎨 Pilih Tema Tampilan",
-        ["Tema 1: Dark Emerald Glass", "Tema 2: Vibrant Liquid Glass"],
-        index=0,
-        key="theme_switch"
-    )
+    /* Styling tombol ikon bundar */
+    div.element-container:has(#floating-theme-anchor) + div.element-container button {
+        border-radius: 50% !important;
+        width: 50px !important;
+        height: 50px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.4rem !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(16px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25) !important;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease !important;
+    }
 
-# Injeksi CSS berdasarkan pilihan switch
-if pilihan_tema == "Tema 1: Dark Emerald Glass":
-    st.markdown(CSS_TEMA_1, unsafe_allow_html=True)
+    div.element-container:has(#floating-theme-anchor) + div.element-container button:hover {
+        transform: scale(1.12) rotate(12deg) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35) !important;
+    }
+</style>
+"""
+
+# Inject CSS untuk Floating Anchor
+st.markdown(CSS_FLOATING_SWITCH, unsafe_allow_html=True)
+
+# Anchor elemen HTML untuk selector CSS
+st.markdown('<div id="floating-theme-anchor"></div>', unsafe_allow_html=True)
+
+# --- TOMBOL FLOATING IKON SWITCH TEMA ---
+if st.session_state.theme_mode == "dark":
+    if st.button("☀️", key="btn_theme_toggle", help="Beralih ke Light Mode"):
+        st.session_state.theme_mode = "light"
+        st.rerun()
 else:
-    st.markdown(CSS_TEMA_2, unsafe_allow_html=True)
+    if st.button("🌙", key="btn_theme_toggle", help="Beralih ke Dark Mode"):
+        st.session_state.theme_mode = "dark"
+        st.rerun()
 
-with col_header:
-    st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
-    st.write(
-        "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
-    )
+# --- TERAPKAN TEMA BERDASARKAN STATE ---
+if st.session_state.theme_mode == "dark":
+    st.markdown(CSS_DARK_MODE, unsafe_allow_html=True)
+else:
+    st.markdown(CSS_LIGHT_MODE, unsafe_allow_html=True)
 
-# --- DATABASE RUMUS HARGA (BASE DUPLEX: PER HALAMAN) ---
+# --- HEADER LAYOUT UTAMA ---
+st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
+st.write(
+    "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
+)
+
+# --- DATABASE RUMUS HARGA ---
 PRICING_MATRIX = {
     "A5 (14.8 x 21 cm)": {
         "base_finishing_soft": 25000,
@@ -313,11 +351,9 @@ st.sidebar.markdown("---")
 st.sidebar.header("🔢 Volume Oplos")
 jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_value=1, value=1, step=1)
 
-# Ambil base rate duplex awal
 base_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
 base_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
 
-# Penyesuaian Mode Cetak Simplex
 if mode_cetak == "Simplex (Satu Sisi)":
     rate_warna = int(base_warna * 1.5)
     rate_bw = int(base_bw * 1.5)
@@ -325,7 +361,6 @@ else:
     rate_warna = base_warna
     rate_bw = base_bw
 
-# Hitung tarif otomatis berdasarkan Soft Cover vs Hard Cover (+50%)
 base_soft = PRICING_MATRIX[ukuran_buku]["base_finishing_soft"]
 if jenis_jilid == "Hard Cover":
     rate_finishing_base = int(base_soft * 1.5)
@@ -505,29 +540,36 @@ if ready_to_calculate:
     cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
-    # --- TAMPILAN ANALISIS & SIMULASI PROFIT (5 KOLOM / 3 KOLOM) ---
+    # --- TAMPILAN ANALISIS & METRIK ---
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
-    if count_warna > 0:
-        col1, col2, col3, col4, col5 = st.columns(5)
+    # BUKU CAMPURAN -> 6 Kolom Komparasi Efisiensi
+    if count_warna > 0 and count_bw > 0:
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
             st.metric("Total Halaman Warna", f"{count_warna} hlm")
         with col2:
             st.metric("Total Halaman BW", f"{count_bw} hlm")
         with col3:
-            st.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
+            st.metric("Total Harga Per Eks", f"Rp {total_harga_per_eks:,}")
         with col4:
-            st.metric("Grand Total Full Colour", f"Rp {cost_full_warna_all:,}")
+            st.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
         with col5:
+            st.metric("Grand Total Full Colour", f"Rp {cost_full_warna_all:,}")
+        with col6:
             st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
+
+    # HANYA WARNA / HANYA BW -> 4 Kolom Standar
     else:
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Total Halaman Warna", f"{count_warna} hlm")
         with col2:
             st.metric("Total Halaman BW", f"{count_bw} hlm")
         with col3:
+            st.metric("Total Harga Per Eks", f"Rp {total_harga_per_eks:,}")
+        with col4:
             st.metric("GRAND TOTAL", f"Rp {grand_total:,}")
         
     st.markdown("### 💰 Ringkasan Biaya Produksi")
@@ -673,9 +715,9 @@ dalam hidup.
 
 # --- FOOTER HALAMAN ---
 st.markdown("---")
-footer_color = "#10b981" if pilihan_tema == "Tema 1: Dark Emerald Glass" else "#f43f5e"
+footer_color = "#10b981" if st.session_state.theme_mode == "dark" else "#ec4899"
 footer_html = f"""
-    <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; padding: 10px 0px;">
+    <div style="text-align: center; color: rgba(148, 163, 184, 0.8); font-size: 14px; padding: 10px 0px;">
         <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: {footer_color}; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
     </div>
 """
