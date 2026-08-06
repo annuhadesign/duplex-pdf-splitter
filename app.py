@@ -63,27 +63,27 @@ CSS_DARK_MODE = """
         box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3) !important;
     }
     
-    /* Tombol Tema (Floating) */
+    /* Tombol Tema (Floating Action Button di Kanan Bawah) */
     button[title="Toggle Theme"] {
         position: fixed !important;
-        top: 20px !important;
-        right: 20px !important;
-        z-index: 999999 !important;
-        width: 50px !important;
-        height: 50px !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        z-index: 9999999 !important;
+        width: 60px !important;
+        height: 60px !important;
         border-radius: 50% !important;
-        background: rgba(30, 41, 59, 0.8) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        font-size: 24px !important;
+        background: rgba(30, 41, 59, 0.9) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        font-size: 26px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important;
         padding: 0 !important;
-        transition: transform 0.2s ease !important;
+        transition: transform 0.2s ease, background 0.2s ease !important;
     }
-    button[title="Toggle Theme"]:hover { transform: scale(1.1); border-color: #10b981 !important; }
+    button[title="Toggle Theme"]:hover { transform: scale(1.12); border-color: #10b981 !important; background: rgba(30, 41, 59, 1) !important; }
     
     div[data-testid="stTable"] { background: rgba(20, 27, 45, 0.4) !important; border-radius: 14px !important; }
 </style>
@@ -165,27 +165,27 @@ CSS_LIGHT_MODE = """
         transform: translateY(-2px) !important;
     }
 
-    /* Tombol Tema (Floating) */
+    /* Tombol Tema (Floating Action Button di Kanan Bawah) */
     button[title="Toggle Theme"] {
         position: fixed !important;
-        top: 20px !important;
-        right: 20px !important;
-        z-index: 999999 !important;
-        width: 50px !important;
-        height: 50px !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        z-index: 9999999 !important;
+        width: 60px !important;
+        height: 60px !important;
         border-radius: 50% !important;
-        background: rgba(255, 255, 255, 0.9) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: blur(15px) !important;
         border: 1px solid rgba(255, 255, 255, 1) !important;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08) !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         padding: 0 !important;
-        transition: transform 0.2s ease !important;
+        transition: transform 0.2s ease, background 0.2s ease !important;
     }
-    button[title="Toggle Theme"]:hover { transform: scale(1.1); }
+    button[title="Toggle Theme"]:hover { transform: scale(1.12); background: rgba(255, 255, 255, 1) !important; }
     
     div[data-testid="stTable"] { background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(15px); border-radius: 16px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.9); }
     th { color: #64748b !important; }
@@ -428,19 +428,11 @@ if ready_to_calculate:
     cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
-    
     # =====================================================================
-    # --- RENDER CONTAINER ANALISIS DENGAN GRADASI INSTAGRAM (LIGHT MODE) ---
+    # --- RENDER ANALISIS (DIBUAT BERSIH SEPERTI BAGIAN LAIN) ---
     # =====================================================================
     st.markdown("---")
-    if st.session_state.theme_mode == "light":
-        st.markdown("""
-        <div style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); padding: 18px 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(220, 39, 67, 0.3); margin-bottom: 20px;">
-            <div style="color: #ffffff !important; font-weight: 700 !important; margin: 0; font-size: 1.25rem;">📊 Analisis Halaman & Kalkulator Selisih Profit</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
+    st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
     # KONDISI 1: JIKA BUKU CAMPURAN (Warna diisi & BW diisi)
     if (count_warna > 0) and (count_bw > 0):
