@@ -68,11 +68,12 @@ CSS_DARK_MODE = """
         background: rgba(30, 41, 59, 0.8) !important;
         backdrop-filter: blur(10px) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        font-size: 20px !important;
+        font-size: 24px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+        padding: 0 !important;
         transition: transform 0.2s ease !important;
     }
     button[title="Toggle Theme"]:hover { transform: scale(1.1); border-color: #10b981 !important; }
@@ -81,16 +82,12 @@ CSS_DARK_MODE = """
 </style>
 """
 
-# --- DEFINISI CSS TEMA 2: PASTEL UI (SESUAI GAMBAR KEDUA) ---
+# --- DEFINISI CSS TEMA 2: PASTEL UI (SESUAI GAMBAR REFERENSI KEDUA) ---
 CSS_LIGHT_MODE = """
 <style>
-    /* Latar Belakang Gradien Pastel Lembut */
+    /* Latar Belakang Gradien Pastel */
     .stApp {
-        background-color: #f8fafc;
-        background-image: 
-            radial-gradient(circle at 0% 0%, rgba(186, 230, 253, 0.6) 0%, transparent 40%),
-            radial-gradient(circle at 100% 0%, rgba(254, 205, 211, 0.6) 0%, transparent 40%),
-            radial-gradient(circle at 50% 100%, rgba(243, 232, 255, 0.6) 0%, transparent 50%);
+        background: linear-gradient(135deg, #e0f2fe 0%, #fce7f3 50%, #f3e8ff 100%);
         background-attachment: fixed;
         color: #1e293b;
     }
@@ -99,28 +96,28 @@ CSS_LIGHT_MODE = """
     p, span, label { color: #475569; font-weight: 500; }
 
     section[data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.7) !important;
-        backdrop-filter: blur(25px);
-        border-right: 1px solid rgba(226, 232, 240, 0.8) !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.8) !important;
     }
 
-    /* Kartu Metrik ala UI Design Pastel */
+    /* Kartu Metrik ala UI Pastel */
     div[data-testid="stMetric"] {
         background: #ffffff !important;
         border-radius: 20px !important;
         padding: 20px !important;
-        border: none !important;
-        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05) !important;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     div[data-testid="stMetric"]:hover {
         transform: translateY(-4px);
-        box-shadow: 0 15px 45px -10px rgba(168, 85, 247, 0.2) !important;
+        box-shadow: 0 15px 45px -10px rgba(236, 72, 153, 0.2) !important;
     }
     
     div[data-testid="stMetricLabel"] { color: #64748b !important; font-weight: 600 !important; }
-    div[data-testid="stMetricValue"] { color: #1e293b !important; font-weight: 800 !important; }
-    div[data-testid="stMetricDelta"] { color: #10b981 !important; } /* Warna hijau untung */
+    div[data-testid="stMetricValue"] { color: #0f172a !important; font-weight: 800 !important; }
+    div[data-testid="stMetricDelta"] { color: #10b981 !important; }
 
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
@@ -130,16 +127,15 @@ CSS_LIGHT_MODE = """
         border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
         color: #0f172a !important;
-        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02) !important;
     }
 
-    /* Tombol Utama Gradien Magenta/Ungu ala referensi */
+    /* Tombol Utama Gradien Magenta/Ungu */
     .stButton > button {
         background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
         border: none !important;
-        border-radius: 12px !important;
+        border-radius: 14px !important;
         padding: 12px 24px !important;
         box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3) !important;
     }
@@ -158,14 +154,14 @@ CSS_LIGHT_MODE = """
         height: 50px !important;
         border-radius: 50% !important;
         background: #ffffff !important;
-        border: 1px solid rgba(226, 232, 240, 1) !important;
-        font-size: 20px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08) !important;
-        transition: transform 0.2s ease !important;
+        font-size: 24px !important;
         padding: 0 !important;
+        transition: transform 0.2s ease !important;
     }
     button[title="Toggle Theme"]:hover { transform: scale(1.1); }
     
@@ -183,8 +179,9 @@ else:
     st.markdown(CSS_LIGHT_MODE, unsafe_allow_html=True)
     ikon_tema = "🌙"
 
-# Tombol yang akan menjadi floating button berkat CSS di atas
+# Eksekusi Tombol Floating
 st.button(ikon_tema, on_click=toggle_theme, help="Toggle Theme")
+
 
 # --- HEADER LAYOUT UTAMA ---
 st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
@@ -363,9 +360,9 @@ else:
     
     col_in1, col_in2 = st.columns(2)
     with col_in1:
-        count_warna = st.number_input("Jumlah Halaman WARNA", min_value=0, value=0, step=1)
+        count_warna = int(st.number_input("Jumlah Halaman WARNA", min_value=0, value=0, step=1))
     with col_in2:
-        count_bw = st.number_input("Jumlah Halaman HITAM PUTIH (BW)", min_value=0, value=0, step=1)
+        count_bw = int(st.number_input("Jumlah Halaman HITAM PUTIH (BW)", min_value=0, value=0, step=1))
         
     total_pages = count_warna + count_bw
     ready_to_calculate = total_pages > 0
@@ -411,39 +408,34 @@ if ready_to_calculate:
     cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
-    # --- TAMPILAN ANALISIS & METRIK ---
+    
+    # =====================================================================
+    # --- LOGIKA TAMPILAN METRIK YANG BENAR (PEMBARUAN) ---
+    # =====================================================================
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
-    # --- LOGIKA TAMPILAN KOLOM YG DIPERBARUI ---
-    # Jika ADA halaman warna DAN ADA halaman BW -> Tampilkan 6 Kolom
-    if count_warna > 0 and count_bw > 0:
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
-        with col1:
-            st.metric("Total Halaman Warna", f"{count_warna} hlm")
-        with col2:
-            st.metric("Total Halaman BW", f"{count_bw} hlm")
-        with col3:
-            st.metric("TOTAL HARGA PER EKS", f"Rp {total_harga_per_eks:,}")
-        with col4:
-            st.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
-        with col5:
-            st.metric("Grand Total Full Colour", f"Rp {cost_full_warna_all:,}")
-        with col6:
-            st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
+    # KONDISI 1: JIKA BUKU CAMPURAN (Warna diisi & BW diisi / Lebih dari 0)
+    if (count_warna > 0) and (count_bw > 0):
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Total Halaman Warna", f"{count_warna} hlm")
+        c2.metric("Total Halaman BW", f"{count_bw} hlm")
+        c3.metric("TOTAL HARGA PER EKS", f"Rp {total_harga_per_eks:,}")  # Disisipkan persis setelah BW
+        c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
+        c5.metric("Grand Total Full Colour", f"Rp {cost_full_warna_all:,}")
+        c6.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
 
-    # Jika BUKU FULL BW saja ATAU FULL WARNA saja -> Tampilkan 4 Kolom
+    # KONDISI 2: JIKA BUKU FULL WARNA atau FULL BW SAJA
     else:
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Total Halaman Warna", f"{count_warna} hlm")
-        with col2:
-            st.metric("Total Halaman BW", f"{count_bw} hlm")
-        with col3:
-            st.metric("TOTAL HARGA PER EKS", f"Rp {total_harga_per_eks:,}")
-        with col4:
-            st.metric("GRAND TOTAL", f"Rp {grand_total:,}")
-        
+        # Jika salah satu kosong, sembunyikan metrik Grand Total Oplos dan Efisiensi
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Halaman Warna", f"{count_warna} hlm")
+        c2.metric("Total Halaman BW", f"{count_bw} hlm")
+        c3.metric("TOTAL HARGA PER EKS", f"Rp {total_harga_per_eks:,}")  # Disisipkan persis setelah BW
+        c4.metric("GRAND TOTAL", f"Rp {grand_total:,}") 
+    # =====================================================================
+
+
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     st.table({
         "Spesifikasi Buku & Komponen": [
