@@ -5,84 +5,140 @@ from datetime import datetime, timedelta, timezone
 
 st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
-# --- INJEKSI CSS GLASSMORPHISM ---
+# --- INJEKSI CSS DARK NEON GLASSMORPHISM (SESUAI DESAIN GAMBAR) ---
 st.markdown("""
 <style>
-    /* Background Utama Gradasi Dark Purple/Navy */
+    /* 1. Latar Belakang Gelap dengan Ambient Radial Glow (Hijau & Biru) */
     .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
-        color: #f8fafc;
+        background-color: #0a0d14;
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 45%),
+            radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.18) 0%, transparent 45%),
+            radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 50%);
+        background-attachment: fixed;
+        color: #e2e8f0;
     }
 
-    /* Sidebar Glassmorphism */
+    /* 2. Typography Headings */
+    h1, h2, h3 {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.5px;
+    }
+
+    /* 3. Sidebar Transparan & Blur */
     section[data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.03) !important;
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 23, 42, 0.5) !important;
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
-    /* Glass Card untuk Metric (Metrik Analisis) */
+    /* 4. Glass Cards untuk Metrik (Sesuai Panel Card di Gambar) */
     div[data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.06) !important;
+        background: rgba(20, 27, 45, 0.6) !important;
         backdrop-filter: blur(16px) saturate(180%);
         -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 16px !important;
-        padding: 18px 22px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        padding: 20px !important;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
 
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        transform: translateY(-3px);
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        box-shadow: 0 12px 35px -5px rgba(16, 185, 129, 0.15) !important;
     }
 
-    /* Glass Styling untuk Input, Selectbox & Radio */
+    div[data-testid="stMetricLabel"] {
+        color: #94a3b8 !important;
+        font-size: 0.9rem !important;
+    }
+
+    div[data-testid="stMetricValue"] {
+        color: #38bdf8 !important;
+        font-weight: 700 !important;
+    }
+
+    /* 5. Styling Input, Selectbox, & Number Input */
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
-    .stNumberInput input {
-        background: rgba(255, 255, 255, 0.05) !important;
+    .stNumberInput input,
+    div[data-testid="stFileUploader"] {
+        background: rgba(30, 41, 59, 0.5) !important;
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
         color: #f8fafc !important;
     }
 
-    /* Glass Styling untuk Tombol / Button */
-    .stButton > button, .stDownloadButton > button {
-        background: rgba(255, 255, 255, 0.08) !important;
-        backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="input"] > div:hover {
+        border-color: rgba(16, 185, 129, 0.5) !important;
+    }
+
+    /* 6. Tombol Aksi Utama (Aksen Emerald / Cyan Neon seperti di Gambar) */
+    .stButton > button {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: #022c22 !important;
+        font-weight: 700 !important;
+        border: none !important;
         border-radius: 12px !important;
-        color: #ffffff !important;
+        padding: 12px 24px !important;
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3) !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+        box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5) !important;
+        transform: translateY(-2px) !important;
+        color: #022c22 !important;
+    }
+
+    /* Tombol Download (Secondary Dark Glass Button) */
+    .stDownloadButton > button {
+        background: rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 12px !important;
+        color: #f1f5f9 !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
-        transition: all 0.3s ease !important;
+        transition: all 0.25s ease !important;
     }
 
-    .stButton > button:hover, .stDownloadButton > button:hover {
-        background: rgba(255, 255, 255, 0.2) !important;
-        border-color: rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+    .stDownloadButton > button:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+        border-color: rgba(16, 185, 129, 0.4) !important;
+        color: #34d399 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     }
 
-    /* Glass Effect untuk Preview Struk & Code Block */
+    /* 7. Code Block & Struk Preview Styling */
     pre, code {
-        background: rgba(0, 0, 0, 0.4) !important;
+        background: rgba(15, 23, 42, 0.8) !important;
         backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px !important;
+        color: #38bdf8 !important;
     }
 
-    /* Expander Glassmorphism */
+    /* 8. Table Styling Glass */
+    div[data-testid="stTable"] {
+        background: rgba(20, 27, 45, 0.4) !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        overflow: hidden;
+    }
+
+    /* Expander Glass */
     div[data-testid="stExpander"] {
-        background: rgba(255, 255, 255, 0.04) !important;
+        background: rgba(20, 27, 45, 0.4) !important;
         backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -494,7 +550,7 @@ dalam hidup.
 st.markdown("---")
 footer_html = """
     <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; padding: 10px 0px;">
-        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: #E1306C; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
+        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: #10b981; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
     </div>
 """
 st.markdown(footer_html, unsafe_allow_html=True)
