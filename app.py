@@ -5,6 +5,88 @@ from datetime import datetime, timedelta, timezone
 
 st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
+# --- INJEKSI CSS GLASSMORPHISM ---
+st.markdown("""
+<style>
+    /* Background Utama Gradasi Dark Purple/Navy */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+        color: #f8fafc;
+    }
+
+    /* Sidebar Glassmorphism */
+    section[data-testid="stSidebar"] {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Glass Card untuk Metric (Metrik Analisis) */
+    div[data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 16px !important;
+        padding: 18px 22px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* Glass Styling untuk Input, Selectbox & Radio */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div,
+    .stNumberInput input {
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 10px !important;
+        color: #f8fafc !important;
+    }
+
+    /* Glass Styling untuk Tombol / Button */
+    .stButton > button, .stDownloadButton > button {
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 12px !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-color: rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* Glass Effect untuk Preview Struk & Code Block */
+    pre, code {
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+    }
+
+    /* Expander Glassmorphism */
+    div[data-testid="stExpander"] {
+        background: rgba(255, 255, 255, 0.04) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🖨️ Litnus Printing - Duplex-Aware PDF Splitter & Cost Calculator")
 st.write(
     "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
@@ -54,7 +136,7 @@ jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_valu
 base_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
 base_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
 
-# Penyesuaian Mode Cetak Simplex: (Base Duplex * 2) - 25% = Base Duplex * 1.5
+# Penyesuaian Mode Cetak Simplex
 if mode_cetak == "Simplex (Satu Sisi)":
     rate_warna = int(base_warna * 1.5)
     rate_bw = int(base_bw * 1.5)
@@ -197,7 +279,6 @@ else:
 
 # --- BLOK PROSES KALKULASI UTAMA ---
 if ready_to_calculate:
-    # Mengunci Zona Waktu WIB (UTC+7)
     tz_wib = timezone(timedelta(hours=7))
     waktu_sekarang = datetime.now(tz_wib)
     str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S WIB")
@@ -210,11 +291,9 @@ if ready_to_calculate:
         if jumlah_cetak >= tier:
             diskon_isi_persen = (idx + 1) * 4
             
-    # Batasi maksimal diskon isi di 32%
     if diskon_isi_persen > 32:
         diskon_isi_persen = 32
     
-    # Hitung nilai per halaman setelah dipotong diskon isi
     rate_warna_akhir = int(rate_warna * (1 - diskon_isi_persen / 100))
     rate_bw_akhir = int(rate_bw * (1 - diskon_isi_persen / 100))
     
@@ -222,13 +301,13 @@ if ready_to_calculate:
     cost_bw_per_buku = count_bw * rate_bw_akhir
     total_isi_per_buku = cost_warna_per_buku + cost_bw_per_buku
     
-    # 2. Perhitungan Diskon Finishing Oplos (Kelipatan 5 eks, Maks 40%)
+    # 2. Perhitungan Diskon Finishing Oplos
     calc_oplos_finishing = min(jumlah_cetak, 200)
     persen_diskon_finishing = (calc_oplos_finishing // 5) * 2
     if persen_diskon_finishing > 40:
         persen_diskon_finishing = 40
         
-    # 3. Biaya Finishing Setelah Diskon Oplos
+    # 3. Biaya Finishing Setelah Diskon
     nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
     rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
     
@@ -245,20 +324,22 @@ if ready_to_calculate:
     cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
-    # --- TAMPILAN ANALISIS & SIMULASI PROFIT ---
+    # --- TAMPILAN ANALISIS & SIMULASI PROFIT (GLASSMETRICS) ---
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
     if count_warna > 0:
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.metric("Total Halaman Warna", f"{count_warna} hlm")
         with col2:
             st.metric("Total Halaman BW", f"{count_bw} hlm")
         with col3:
-            st.metric("GRAND TOTAL", f"Rp {grand_total:,}")
+            st.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
         with col4:
-            st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna Standard")
+            st.metric("Grand Total Full Colour", f"Rp {cost_full_warna_all:,}")
+        with col5:
+            st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
     else:
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -409,10 +490,10 @@ dalam hidup.
     st.markdown("### 📝 Pratinjau Struk Kasir")
     st.code(struk_text, language="text")
 
-# --- FOOTER HALAMAN DENGAN TAUTAN INSTAGRAM ---
+# --- FOOTER HALAMAN ---
 st.markdown("---")
 footer_html = """
-    <div style="text-align: center; color: grey; font-size: 14px; padding: 10px 0px;">
+    <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; padding: 10px 0px;">
         <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: #E1306C; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
     </div>
 """
