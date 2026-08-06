@@ -436,7 +436,7 @@ if ready_to_calculate:
     if st.session_state.theme_mode == "light":
         st.markdown("""
         <div style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); padding: 18px 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(220, 39, 67, 0.3); margin-bottom: 20px;">
-            <h3 style="color: #ffffff !important; font-weight: 700 !important; margin: 0; font-size: 1.25rem;">📊 Analisis Halaman & Kalkulator Selisih Profit</h3>
+            <div style="color: #ffffff !important; font-weight: 700 !important; margin: 0; font-size: 1.25rem;">📊 Analisis Halaman & Kalkulator Selisih Profit</div>
         </div>
         """, unsafe_allow_html=True)
     else:
