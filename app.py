@@ -106,24 +106,23 @@ CSS_LIGHT_MODE = """
         border-right: 1px solid rgba(255, 255, 255, 0.9) !important;
     }
 
-    /* Kartu Metrik ala Frosted-Glass UI */
+    /* Kartu Metrik dengan Gradien Warna Logo Instagram & Teks Putih */
     div[data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(20px);
+        background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%) !important;
         border-radius: 20px !important;
         padding: 20px !important;
-        border: 1px solid rgba(255, 255, 255, 1) !important;
-        box-shadow: 0 10px 30px 0 rgba(31, 38, 135, 0.07) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 10px 25px rgba(220, 39, 67, 0.25) !important;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     div[data-testid="stMetric"]:hover {
         transform: translateY(-3px);
-        box-shadow: 0 15px 35px 0 rgba(236, 72, 153, 0.15) !important;
+        box-shadow: 0 15px 30px rgba(220, 39, 67, 0.35) !important;
     }
     
-    div[data-testid="stMetricLabel"] { color: #64748b !important; font-weight: 600 !important; }
-    div[data-testid="stMetricValue"] { color: #0f172a !important; font-weight: 800 !important; }
-    div[data-testid="stMetricDelta"] { color: #10b981 !important; }
+    div[data-testid="stMetricLabel"] { color: rgba(255, 255, 255, 0.9) !important; font-weight: 600 !important; }
+    div[data-testid="stMetricValue"] { color: #ffffff !important; font-weight: 800 !important; }
+    div[data-testid="stMetricDelta"] { color: #ffeb3b !important; }
 
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
