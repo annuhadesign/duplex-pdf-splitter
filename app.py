@@ -5,13 +5,10 @@ from datetime import datetime, timedelta, timezone
 
 st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
-# --- INISIALISASI STATE TEMA ---
-if "theme_mode" not in st.session_state:
-    st.session_state.theme_mode = "dark"  # Default ke Dark Mode
-
-# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS (DARK MODE) ---
-CSS_DARK_MODE = """
+# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS ---
+CSS_TEMA_1 = """
 <style>
+    /* Latar Belakang Gelap dengan Ambient Radial Glow */
     .stApp {
         background-color: #0a0d14;
         background-image: 
@@ -124,192 +121,146 @@ CSS_DARK_MODE = """
 </style>
 """
 
-# --- DEFINISI CSS TEMA 2: PASTEL LIGHT GLASS (LIGHT MODE SESUAI GAMBAR) ---
-CSS_LIGHT_MODE = """
+# --- DEFINISI CSS TEMA 2: VIBRANT LIQUID GLASS ---
+CSS_TEMA_2 = """
 <style>
-    /* Latar Belakang Gradien Pastel Lembut (Cyan -> Soft Purple -> Soft Pink) */
+    /* Background Liquid Organic Gradient */
     .stApp {
-        background-color: #f1f5f9;
+        background-color: #0c021a;
         background-image: 
-            linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #fce7f3 100%);
+            radial-gradient(circle at 10% 25%, rgba(0, 183, 255, 0.55) 0%, transparent 45%),
+            radial-gradient(circle at 38% 18%, rgba(157, 0, 255, 0.6) 0%, transparent 50%),
+            radial-gradient(circle at 85% 75%, rgba(255, 0, 166, 0.55) 0%, transparent 55%),
+            radial-gradient(circle at 25% 85%, rgba(140, 40, 255, 0.4) 0%, transparent 45%);
         background-attachment: fixed;
-        color: #1e293b;
+        color: #f8fafc;
     }
 
     h1, h2, h3 {
-        color: #0f172a !important;
+        color: #ffffff !important;
         font-weight: 700 !important;
-        letter-spacing: -0.5px;
-    }
-
-    p, span, label, div {
-        color: #334155;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     }
 
     section[data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.45) !important;
-        backdrop-filter: blur(25px) saturate(180%);
-        -webkit-backdrop-filter: blur(25px) saturate(180%);
-        border-right: 1px solid rgba(255, 255, 255, 0.8) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(28px) saturate(210%);
+        -webkit-backdrop-filter: blur(28px) saturate(210%);
+        border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
     }
 
-    /* Kartu / Metrik Putih Glassmorphic */
     div[data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.75) !important;
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.9) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(25px) saturate(200%);
+        -webkit-backdrop-filter: blur(25px) saturate(200%);
+        border: 1px solid rgba(255, 255, 255, 0.22) !important;
         border-radius: 20px !important;
         padding: 20px !important;
-        box-shadow: 0 10px 30px -5px rgba(148, 163, 184, 0.18), 0 4px 6px -4px rgba(148, 163, 184, 0.1) !important;
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.35) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 35px -5px rgba(236, 72, 153, 0.22) !important;
-        border: 1px solid rgba(244, 114, 182, 0.5) !important;
+        transform: translateY(-4px);
+        background: rgba(255, 255, 255, 0.14) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 16px 48px 0 rgba(236, 72, 153, 0.25) !important;
     }
 
     div[data-testid="stMetricLabel"] {
-        color: #64748b !important;
+        color: #e2e8f0 !important;
         font-size: 0.85rem !important;
-        font-weight: 600 !important;
+        font-weight: 500;
     }
 
     div[data-testid="stMetricValue"] {
-        color: #d946ef !important;
+        color: #38bdf8 !important;
         font-weight: 800 !important;
+        text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
     }
 
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
     .stNumberInput input,
     div[data-testid="stFileUploader"] {
-        background: rgba(255, 255, 255, 0.8) !important;
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(203, 213, 225, 0.8) !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 14px !important;
-        color: #0f172a !important;
+        color: #ffffff !important;
     }
 
-    /* Tombol Utama Gradien Magenta Pastel */
     .stButton > button {
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%) !important;
+        background: linear-gradient(135deg, #f43f5e 0%, #d946ef 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
-        border: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         border-radius: 14px !important;
         padding: 12px 24px !important;
-        box-shadow: 0 6px 20px rgba(236, 72, 153, 0.3) !important;
-        transition: all 0.25s ease !important;
+        box-shadow: 0 4px 25px rgba(217, 70, 239, 0.45) !important;
+        transition: all 0.3s ease !important;
     }
 
     .stButton > button:hover {
-        background: linear-gradient(135deg, #f43f5e 0%, #a855f7 100%) !important;
-        box-shadow: 0 8px 25px rgba(236, 72, 153, 0.45) !important;
+        background: linear-gradient(135deg, #fb7185 0%, #e879f9 100%) !important;
+        box-shadow: 0 8px 30px rgba(217, 70, 239, 0.7) !important;
         transform: translateY(-2px) !important;
-        color: #ffffff !important;
     }
 
     .stDownloadButton > button {
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
         border-radius: 14px !important;
-        color: #0f172a !important;
+        color: #ffffff !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 12px rgba(148, 163, 184, 0.12) !important;
-        transition: all 0.25s ease !important;
+        transition: all 0.3s ease !important;
     }
 
     .stDownloadButton > button:hover {
-        background: #ffffff !important;
-        border-color: #ec4899 !important;
-        color: #ec4899 !important;
+        background: rgba(255, 255, 255, 0.18) !important;
+        border-color: rgba(244, 114, 182, 0.5) !important;
+        color: #f472b6 !important;
     }
 
     pre, code {
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        background: rgba(10, 2, 22, 0.75) !important;
+        backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
         border-radius: 16px !important;
-        color: #0f172a !important;
+        color: #38bdf8 !important;
     }
 
     div[data-testid="stTable"], div[data-testid="stExpander"] {
-        background: rgba(255, 255, 255, 0.65) !important;
-        backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
         border-radius: 16px !important;
     }
 </style>
 """
 
-# --- CSS KHUSUS TOMBOL FLOATING SWITCH TEMA (FIXED SCROLL) ---
-CSS_FLOATING_SWITCH = """
-<style>
-    /* Mengunci posisi tombol switch agar melayang di pojok kanan atas */
-    div.element-container:has(#floating-theme-anchor) + div.element-container {
-        position: fixed !important;
-        top: 20px !important;
-        right: 25px !important;
-        z-index: 999999 !important;
-        width: auto !important;
-    }
+# --- HEADER LAYOUT & SWITCH TEMA DI KANAN ATAS ---
+col_header, col_switch = st.columns([3.2, 1.2])
 
-    /* Styling tombol ikon bundar */
-    div.element-container:has(#floating-theme-anchor) + div.element-container button {
-        border-radius: 50% !important;
-        width: 50px !important;
-        height: 50px !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 1.4rem !important;
-        background: rgba(255, 255, 255, 0.2) !important;
-        backdrop-filter: blur(16px) saturate(180%) !important;
-        -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25) !important;
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease !important;
-    }
+with col_switch:
+    pilihan_tema = st.selectbox(
+        "🎨 Pilih Tema Tampilan",
+        ["Tema 1: Dark Emerald Glass", "Tema 2: Vibrant Liquid Glass"],
+        index=0,
+        key="theme_switch"
+    )
 
-    div.element-container:has(#floating-theme-anchor) + div.element-container button:hover {
-        transform: scale(1.12) rotate(12deg) !important;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35) !important;
-    }
-</style>
-"""
-
-# Inject CSS untuk Floating Anchor
-st.markdown(CSS_FLOATING_SWITCH, unsafe_allow_html=True)
-
-# Anchor elemen HTML untuk selector CSS
-st.markdown('<div id="floating-theme-anchor"></div>', unsafe_allow_html=True)
-
-# --- TOMBOL FLOATING IKON SWITCH TEMA ---
-if st.session_state.theme_mode == "dark":
-    if st.button("☀️", key="btn_theme_toggle", help="Beralih ke Light Mode"):
-        st.session_state.theme_mode = "light"
-        st.rerun()
+if pilihan_tema == "Tema 1: Dark Emerald Glass":
+    st.markdown(CSS_TEMA_1, unsafe_allow_html=True)
 else:
-    if st.button("🌙", key="btn_theme_toggle", help="Beralih ke Dark Mode"):
-        st.session_state.theme_mode = "dark"
-        st.rerun()
+    st.markdown(CSS_TEMA_2, unsafe_allow_html=True)
 
-# --- TERAPKAN TEMA BERDASARKAN STATE ---
-if st.session_state.theme_mode == "dark":
-    st.markdown(CSS_DARK_MODE, unsafe_allow_html=True)
-else:
-    st.markdown(CSS_LIGHT_MODE, unsafe_allow_html=True)
-
-# --- HEADER LAYOUT UTAMA ---
-st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
-st.write(
-    "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
-)
+with col_header:
+    st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
+    st.write(
+        "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
+    )
 
 # --- DATABASE RUMUS HARGA ---
 PRICING_MATRIX = {
@@ -544,7 +495,8 @@ if ready_to_calculate:
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
-    # BUKU CAMPURAN -> 6 Kolom Komparasi Efisiensi
+    # LOGIKA CONDITIONAL METRICS:
+    # Jika BUKU CAMPURAN (Ada Halaman Warna DAN Ada Halaman BW) -> 6 Kolom Komparasi Efisiensi
     if count_warna > 0 and count_bw > 0:
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
@@ -560,7 +512,7 @@ if ready_to_calculate:
         with col6:
             st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna")
 
-    # HANYA WARNA / HANYA BW -> 4 Kolom Standar
+    # Jika HANYA WARNA saja ATAU HANYA BW saja -> 4 Kolom Standar
     else:
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -715,9 +667,9 @@ dalam hidup.
 
 # --- FOOTER HALAMAN ---
 st.markdown("---")
-footer_color = "#10b981" if st.session_state.theme_mode == "dark" else "#ec4899"
+footer_color = "#10b981" if pilihan_tema == "Tema 1: Dark Emerald Glass" else "#f43f5e"
 footer_html = f"""
-    <div style="text-align: center; color: rgba(148, 163, 184, 0.8); font-size: 14px; padding: 10px 0px;">
+    <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; padding: 10px 0px;">
         <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: {footer_color}; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
     </div>
 """
