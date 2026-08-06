@@ -5,10 +5,10 @@ from datetime import datetime, timedelta, timezone
 
 st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
-# --- INJEKSI CSS DARK NEON GLASSMORPHISM (SESUAI DESAIN GAMBAR) ---
-st.markdown("""
+# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS (KODE CSS LAMA) ---
+CSS_TEMA_1 = """
 <style>
-    /* 1. Latar Belakang Gelap dengan Ambient Radial Glow (Hijau & Biru) */
+    /* Latar Belakang Gelap dengan Ambient Radial Glow (Hijau & Biru) */
     .stApp {
         background-color: #0a0d14;
         background-image: 
@@ -19,14 +19,12 @@ st.markdown("""
         color: #e2e8f0;
     }
 
-    /* 2. Typography Headings */
     h1, h2, h3 {
         color: #ffffff !important;
         font-weight: 700 !important;
         letter-spacing: -0.5px;
     }
 
-    /* 3. Sidebar Transparan & Blur */
     section[data-testid="stSidebar"] {
         background: rgba(15, 23, 42, 0.5) !important;
         backdrop-filter: blur(20px) saturate(180%);
@@ -34,7 +32,6 @@ st.markdown("""
         border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
-    /* 4. Glass Cards untuk Metrik (Sesuai Panel Card di Gambar) */
     div[data-testid="stMetric"] {
         background: rgba(20, 27, 45, 0.6) !important;
         backdrop-filter: blur(16px) saturate(180%);
@@ -62,7 +59,6 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* 5. Styling Input, Selectbox, & Number Input */
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
     .stNumberInput input,
@@ -74,12 +70,6 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
-    div[data-baseweb="select"] > div:hover,
-    div[data-baseweb="input"] > div:hover {
-        border-color: rgba(16, 185, 129, 0.5) !important;
-    }
-
-    /* 6. Tombol Aksi Utama (Aksen Emerald / Cyan Neon seperti di Gambar) */
     .stButton > button {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
         color: #022c22 !important;
@@ -98,7 +88,6 @@ st.markdown("""
         color: #022c22 !important;
     }
 
-    /* Tombol Download (Secondary Dark Glass Button) */
     .stDownloadButton > button {
         background: rgba(255, 255, 255, 0.06) !important;
         backdrop-filter: blur(12px) !important;
@@ -113,10 +102,8 @@ st.markdown("""
         background: rgba(255, 255, 255, 0.12) !important;
         border-color: rgba(16, 185, 129, 0.4) !important;
         color: #34d399 !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     }
 
-    /* 7. Code Block & Struk Preview Styling */
     pre, code {
         background: rgba(15, 23, 42, 0.8) !important;
         backdrop-filter: blur(12px) !important;
@@ -125,28 +112,166 @@ st.markdown("""
         color: #38bdf8 !important;
     }
 
-    /* 8. Table Styling Glass */
-    div[data-testid="stTable"] {
-        background: rgba(20, 27, 45, 0.4) !important;
-        border-radius: 14px !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        overflow: hidden;
-    }
-
-    /* Expander Glass */
-    div[data-testid="stExpander"] {
+    div[data-testid="stTable"], div[data-testid="stExpander"] {
         background: rgba(20, 27, 45, 0.4) !important;
         backdrop-filter: blur(10px) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 14px !important;
     }
 </style>
-""", unsafe_allow_html=True)
+"""
 
-st.title("🖨️ Litnus Printing - Duplex-Aware PDF Splitter & Cost Calculator")
-st.write(
-    "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
-)
+# --- DEFINISI CSS TEMA 2: VIBRANT LIQUID GLASS (ACUAN GAMBAR BARU) ---
+CSS_TEMA_2 = """
+<style>
+    /* Background Liquid Organic Gradient (Magenta, Purple, Cyan) */
+    .stApp {
+        background-color: #0c021a;
+        background-image: 
+            radial-gradient(circle at 10% 25%, rgba(0, 183, 255, 0.55) 0%, transparent 45%),
+            radial-gradient(circle at 38% 18%, rgba(157, 0, 255, 0.6) 0%, transparent 50%),
+            radial-gradient(circle at 85% 75%, rgba(255, 0, 166, 0.55) 0%, transparent 55%),
+            radial-gradient(circle at 25% 85%, rgba(140, 40, 255, 0.4) 0%, transparent 45%);
+        background-attachment: fixed;
+        color: #f8fafc;
+    }
+
+    h1, h2, h3 {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Ultra Frosted Glassmorphism Sidebar */
+    section[data-testid="stSidebar"] {
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(28px) saturate(210%);
+        -webkit-backdrop-filter: blur(28px) saturate(210%);
+        border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
+    }
+
+    /* Glass Overlay Card Metrik */
+    div[data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(25px) saturate(200%);
+        -webkit-backdrop-filter: blur(25px) saturate(200%);
+        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.35) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-4px);
+        background: rgba(255, 255, 255, 0.14) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 16px 48px 0 rgba(236, 72, 153, 0.25) !important;
+    }
+
+    div[data-testid="stMetricLabel"] {
+        color: #e2e8f0 !important;
+        font-size: 0.9rem !important;
+        font-weight: 500;
+    }
+
+    div[data-testid="stMetricValue"] {
+        color: #38bdf8 !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Form & Input Glass Overlay */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div,
+    .stNumberInput input,
+    div[data-testid="stFileUploader"] {
+        background: rgba(255, 255, 255, 0.07) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 14px !important;
+        color: #ffffff !important;
+    }
+
+    div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="input"] > div:hover {
+        border-color: rgba(244, 114, 182, 0.6) !important;
+    }
+
+    /* Tombol Utama (Magenta Neon Gradient) */
+    .stButton > button {
+        background: linear-gradient(135deg, #f43f5e 0%, #d946ef 100%) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 14px !important;
+        padding: 12px 24px !important;
+        box-shadow: 0 4px 25px rgba(217, 70, 239, 0.45) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #fb7185 0%, #e879f9 100%) !important;
+        box-shadow: 0 8px 30px rgba(217, 70, 239, 0.7) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Tombol Download Glass */
+    .stDownloadButton > button {
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        border-radius: 14px !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .stDownloadButton > button:hover {
+        background: rgba(255, 255, 255, 0.18) !important;
+        border-color: rgba(244, 114, 182, 0.5) !important;
+        color: #f472b6 !important;
+    }
+
+    pre, code {
+        background: rgba(10, 2, 22, 0.75) !important;
+        backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        border-radius: 16px !important;
+        color: #38bdf8 !important;
+    }
+
+    div[data-testid="stTable"], div[data-testid="stExpander"] {
+        background: rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        border-radius: 16px !important;
+    }
+</style>
+"""
+
+# --- HEADER LAYOUT & SWITCH TEMA DI KANAN ATAS ---
+col_header, col_switch = st.columns([3.2, 1.2])
+
+with col_switch:
+    pilihan_tema = st.selectbox(
+        "🎨 Pilih Tema Tampilan",
+        ["Tema 1: Dark Emerald Glass", "Tema 2: Vibrant Liquid Glass"],
+        index=0,
+        key="theme_switch"
+    )
+
+# Injeksi CSS berdasarkan pilihan switch
+if pilihan_tema == "Tema 1: Dark Emerald Glass":
+    st.markdown(CSS_TEMA_1, unsafe_allow_html=True)
+else:
+    st.markdown(CSS_TEMA_2, unsafe_allow_html=True)
+
+with col_header:
+    st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
+    st.write(
+        "Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis."
+    )
 
 # --- DATABASE RUMUS HARGA (BASE DUPLEX: PER HALAMAN) ---
 PRICING_MATRIX = {
@@ -380,7 +505,7 @@ if ready_to_calculate:
     cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
     hemat = cost_full_warna_all - grand_total
     
-    # --- TAMPILAN ANALISIS & SIMULASI PROFIT (GLASSMETRICS) ---
+    # --- TAMPILAN ANALISIS & SIMULASI PROFIT (5 KOLOM / 3 KOLOM) ---
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
@@ -548,9 +673,10 @@ dalam hidup.
 
 # --- FOOTER HALAMAN ---
 st.markdown("---")
-footer_html = """
+footer_color = "#10b981" if pilihan_tema == "Tema 1: Dark Emerald Glass" else "#f43f5e"
+footer_html = f"""
     <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; padding: 10px 0px;">
-        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: #10b981; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
+        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: {footer_color}; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
     </div>
 """
 st.markdown(footer_html, unsafe_allow_html=True)
