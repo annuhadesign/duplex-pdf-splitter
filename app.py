@@ -45,8 +45,15 @@ CSS_DARK_MODE = """
         box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
     }
     
+    div[data-testid="stMetric"] *,
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricDelta"] {
+        font-weight: 700 !important;
+    }
+    
     div[data-testid="stMetricLabel"] { color: #94a3b8 !important; }
-    div[data-testid="stMetricValue"] { color: #38bdf8 !important; font-weight: 700 !important; }
+    div[data-testid="stMetricValue"] { color: #38bdf8 !important; }
     
     .stButton > button {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
@@ -106,7 +113,7 @@ CSS_LIGHT_MODE = """
         border-right: 1px solid rgba(255, 255, 255, 0.9) !important;
     }
 
-    /* Kartu Metrik dengan Gradien Warna Logo Instagram & Memaksa Semua Teks Menjadi Putih */
+    /* Kartu Metrik dengan Gradien Warna Logo Instagram & Memaksa Semua Teks Menjadi Putih Tebal */
     div[data-testid="stMetric"] {
         background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%) !important;
         border-radius: 20px !important;
@@ -120,7 +127,7 @@ CSS_LIGHT_MODE = """
         box-shadow: 0 15px 30px rgba(220, 39, 67, 0.35) !important;
     }
     
-    /* Memaksa seluruh elemen teks/angka/label di dalam kartu metrik menjadi putih bersih */
+    /* Memaksa seluruh elemen teks/angka/label di dalam kartu metrik menjadi putih bersih dan bold */
     div[data-testid="stMetric"] *,
     div[data-testid="stMetricLabel"],
     div[data-testid="stMetricValue"],
@@ -129,6 +136,7 @@ CSS_LIGHT_MODE = """
     div[data-testid="stMetric"] span,
     div[data-testid="stMetric"] p {
         color: #ffffff !important;
+        font-weight: 700 !important;
     }
 
     div[data-baseweb="select"] > div,
@@ -428,7 +436,7 @@ if ready_to_calculate:
     if st.session_state.theme_mode == "light":
         st.markdown("""
         <div style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); padding: 18px 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(220, 39, 67, 0.3); margin-bottom: 20px;">
-            <h3 style="color: #ffffff !important; margin: 0; font-weight: 700; font-size: 1.25rem;">📊 Analisis Halaman & Kalkulator Selisih Profit</h3>
+            <h3 style="color: #ffffff !important; font-weight: 700 !important; margin: 0; font-size: 1.25rem;">📊 Analisis Halaman & Kalkulator Selisih Profit</h3>
         </div>
         """, unsafe_allow_html=True)
     else:
