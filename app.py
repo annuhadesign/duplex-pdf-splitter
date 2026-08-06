@@ -248,16 +248,24 @@ if ready_to_calculate:
     # --- TAMPILAN ANALISIS & SIMULASI PROFIT ---
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
-    col1, col2, col3 = st.columns(3)
     
-    with col1:
-        st.metric("Total Halaman Warna", f"{count_warna} hlm")
-    with col2:
-        st.metric("Total Halaman BW", f"{count_bw} hlm")
-    with col3:
-        if count_warna > 0:
+    if count_warna > 0:
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Halaman Warna", f"{count_warna} hlm")
+        with col2:
+            st.metric("Total Halaman BW", f"{count_bw} hlm")
+        with col3:
+            st.metric("GRAND TOTAL", f"Rp {grand_total:,}")
+        with col4:
             st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna Standard")
-        else:
+    else:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Halaman Warna", f"{count_warna} hlm")
+        with col2:
+            st.metric("Total Halaman BW", f"{count_bw} hlm")
+        with col3:
             st.metric("GRAND TOTAL", f"Rp {grand_total:,}")
         
     st.markdown("### 💰 Ringkasan Biaya Produksi")
