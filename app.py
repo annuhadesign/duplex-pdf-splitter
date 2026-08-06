@@ -255,7 +255,10 @@ if ready_to_calculate:
     with col2:
         st.metric("Total Halaman BW", f"{count_bw} hlm")
     with col3:
-        st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna Standard")
+        if count_warna > 0:
+            st.metric("Estimasi Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat vs Full Warna Standard")
+        else:
+            st.metric("GRAND TOTAL", f"Rp {grand_total:,}")
         
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     st.table({
