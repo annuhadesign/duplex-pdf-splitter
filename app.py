@@ -442,39 +442,39 @@ if ready_to_calculate:
 
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     
-    # Tabel kustom HTML dengan header gradien Instagram, teks putih tebal
+    # Tabel kustom HTML: Padding dikurangi & ukuran font header diperbesar (18px) dengan warna teks putih di kedua mode
     table_html = f"""
     <table style="width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 15px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
         <thead>
-            <tr style="background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%); color: white;">
-                <th style="padding: 15px; text-align: left; font-weight: 700; font-size: 16px; color: white !important;">Spesifikasi Buku & Komponen</th>
-                <th style="padding: 15px; text-align: left; font-weight: 700; font-size: 16px; color: white !important;">Detail Perhitungan</th>
+            <tr style="background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%);">
+                <th style="padding: 10px 12px; text-align: left; font-weight: 700; font-size: 18px; color: #ffffff !important;">Spesifikasi Buku & Komponen</th>
+                <th style="padding: 10px 12px; text-align: left; font-weight: 700; font-size: 18px; color: #ffffff !important;">Detail Perhitungan</th>
             </tr>
         </thead>
         <tbody style="background: {'rgba(30, 41, 59, 0.5)' if st.session_state.theme_mode == 'dark' else 'rgba(255, 255, 255, 0.8)'};">
             <tr>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Ukuran & Bahan Kertas Isi</td>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{ukuran_buku} | Kertas {jenis_kertas} ({mode_cetak})</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Ukuran & Bahan Kertas Isi</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{ukuran_buku} | Kertas {jenis_kertas} ({mode_cetak})</td>
             </tr>
             <tr>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Jilid Cover Buku</td>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{jenis_jilid}</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Jilid Cover Buku</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{jenis_jilid}</td>
             </tr>
             <tr>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Cetak Isi (Warna & BW) x {jumlah_cetak} Eks</td>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Cetak Isi (Warna & BW) x {jumlah_cetak} Eks</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)</td>
             </tr>
             <tr>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Finishing Jilid x {jumlah_cetak} Eks</td>
-                <td style="padding: 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1);">Finishing Jilid x {jumlah_cetak} Eks</td>
+                <td style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)</td>
             </tr>
             <tr style="background: {'rgba(16, 185, 129, 0.1)' if st.session_state.theme_mode == 'dark' else 'rgba(16, 185, 129, 0.1)'};">
-                <td style="padding: 12px; font-weight: 700;">PILIHAN 1: GRAND TOTAL (Lunas)</td>
-                <td style="padding: 12px; font-weight: 700; color: #10b981;">Rp {grand_total:,}</td>
+                <td style="padding: 10px 12px; font-weight: 700;">PILIHAN 1: GRAND TOTAL (Lunas)</td>
+                <td style="padding: 10px 12px; font-weight: 700; color: #10b981;">Rp {grand_total:,}</td>
             </tr>
             <tr>
-                <td style="padding: 12px;">PILIHAN 2: NOMINAL UANG MUKA (DP 50%)</td>
-                <td style="padding: 12px; font-weight: 700;">Rp {nominal_dp:,}</td>
+                <td style="padding: 10px 12px;">PILIHAN 2: NOMINAL UANG MUKA (DP 50%)</td>
+                <td style="padding: 10px 12px; font-weight: 700;">Rp {nominal_dp:,}</td>
             </tr>
         </tbody>
     </table>
