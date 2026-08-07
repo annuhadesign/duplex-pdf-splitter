@@ -317,8 +317,9 @@ def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
         else:
             doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
             
-    pdf_warna_bytes = doc_warna.write()
-    pdf_bw_bytes = doc_bw.write()
+    # VALIDASI PENANGANAN DOKUMEN KOSONG (mencegah ValueError)
+    pdf_warna_bytes = doc_warna.write() if len(doc_warna) > 0 else None
+    pdf_bw_bytes = doc_bw.write() if len(doc_bw) > 0 else None
     
     doc_warna.close()
     doc_bw.close()
@@ -560,28 +561,25 @@ dalam hidup.
     st.subheader("📄 Struk & Pemisah File Siap Cetak")
     
     if mode_input == "Otomatis (Upload PDF & Split File)":
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        with col_btn1:
-            st.download_button(
-                label="📥 Unduh Struk Analisis",
-                data=struk_text,
-                file_name=f"Struk_{nama_file_asli}.txt",
-                mime="text/plain"
-            )
-        with col_btn2:
-            st.download_button(
-                label="🎨 Download PDF WARNA",
-                data=pdf_warna_bytes,
-                file_name=f"{nama_file_asli}_Mesin_WARNA.pdf",
-                mime="application/pdf"
-            )
-        with col_btn3:
-            st.download_button(
-                label="⚫ Download PDF BW",
-                data=pdf_bw_bytes,
-                file_name=f"{nama_file_asli}_Mesin_BW.pdf",
-                mime="application/pdf"
-            )
+        # DAFTAR TOMBOL UNDUH DINAMIS (HANYA MEMUAT FILE YANG ADA)
+        downloads = [
+            ("📥 Unduh Struk Analisis", struk_text, f"Struk_{nama_file_asli}.txt", "text/plain")
+        ]
+        if pdf_warna_bytes:
+            downloads.append(("🎨 Download PDF WARNA", pdf_warna_bytes, f"{nama_file_asli}_Mesin_WARNA.pdf", "application/pdf"))
+        if pdf_bw_bytes:
+            downloads.append(("⚫ Download PDF BW", pdf_bw_bytes, f"{nama_file_asli}_Mesin_BW.pdf", "application/pdf"))
+            
+        cols = st.columns(len(downloads))
+        for idx, (label, data, fname, mime) in enumerate(downloads):
+            with cols[idx]:
+                st.download_button(
+                    label=label,
+                    data=data,
+                    file_name=fname,
+                    mime=mime,
+                    use_container_width=True
+                )
     else:
         st.download_button(
             label="📥 Unduh Struk Analisis Manual",
