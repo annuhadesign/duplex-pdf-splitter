@@ -1,519 +1,596 @@
-// =================================================================
-// KONFIGURASI UTAMA SPREADSHEET & LIST DROPDOWN
-// =================================================================
+import fitz  # PyMuPDF
+import os
+import streamlit as st
+from datetime import datetime, timedelta, timezone
 
-var SPREADSHEET_ID = "1TWvoAWkmXz7rus9YMIPuMoJSHmRSd_acMEWMmLGrL50";
+st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
 
-var LIST_PJ = [
-  "Nony", "Kelvin", "Ilyas", "Rian", "Noufal", "Hasan", "Dicky", "Aji", "Syafri", 
-  "Edo", "Ulin", "Mila", "Audy", "Iqbal 3", "gusti", "Aqli", "Riski", "Azizah", 
-  "Diyah", "Faiz", "Alvi", "Tomy", "Novi", "Adinda", "Ghoni", "Azizah 3", "Winda"
-];
+# --- INISIALISASI STATE TEMA ---
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "dark"
 
-var LIST_MARKETING = [
-  "FAIZ", "FEBI", "ALVI", "IQBAL", "ZULYA", "GUSTI", "KHOIR", "TOMY", "RIZPER", 
-  "TIARA", "AQLI", "MILA", "DIYAH", "AISYAH", "AUDY", "TOMO", "PAK SAROMAD", 
-  "IQBAL 4", "MUHAIMIN", "JACQ", "ULIN", "RIAN"
-];
+def toggle_theme():
+    if st.session_state.theme_mode == "dark":
+        st.session_state.theme_mode = "light"
+    else:
+        st.session_state.theme_mode = "dark"
 
-var LIST_UKURAN = ["UNESCO", "A5", "B5", "A4", "A6", "CUSTOM"];
-var LIST_KERTAS = ["HVS 70", "HVS 80", "HVS 60", "BOOKPAPER", "ARTPAPER 120"];
-
-// =================================================================
-// FUNGSI UTAMA PROSES ORDERAN
-// =================================================================
-
-function prosesOrderanCetakBuku() {
-  // 1. FILTER EMAIL (4 EMAIL)
-  var searchQuery = 'in:inbox category:primary is:unread (' +
-    'from:regulerlitnus@gmail.com OR ' +
-    'from:nafalglobalnusantara@gmail.com OR ' +
-    'from:cetakbukumu.id@gmail.com OR ' +
-    'from:penerbitlitnus@gmail.com)';
-  
-  // 2. BUKA SPREADSHEET & AMBIL/BUAT SHEET BULANAN
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var timeZone = ss.getSpreadsheetTimeZone();
-  var monthNames = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
-  var now = new Date();
-  var sheetName = monthNames[now.getMonth()];
-  var sheet = getOrCreateMonthlySheet(ss, sheetName);
-  
-  // 3. CARI EMAIL
-  var threads = GmailApp.search(searchQuery);
-  
-  for (var i = 0; i < threads.length; i++) {
-    var thread = threads[i];
-    var messages = thread.getMessages();
-    var latestMessage = messages[messages.length - 1]; // EMAIL TERBARU
+# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS (DARK MODE) ---
+CSS_DARK_MODE = """
+<style>
+    .stApp {
+        background-color: #0a0d14;
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 45%),
+            radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.18) 0%, transparent 45%),
+            radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 50%);
+        background-attachment: fixed;
+        color: #e2e8f0;
+    }
+    h1, h2, h3 { color: #ffffff !important; font-weight: 700 !important; }
     
-    var rawSubject = latestMessage.getSubject().trim();
-    var body = latestMessage.getPlainBody();
-    
-    // A. DETEKSI JENIS CETAK & TANGGAL CETAK SEBELUMNYA
-    var isReprint = messages.length > 1 || rawSubject.toLowerCase().indexOf("re:") === 0 || rawSubject.toLowerCase().indexOf("fwd:") === 0;
-    var jenisCetak = isReprint ? "CETAK ULANG" : "BARU CETAK";
-    
-    var tglCetakSebelumnya = "";
-    if (messages.length > 1) {
-      var prevMessage = messages[messages.length - 2];
-      var prevDate = prevMessage.getDate();
-      tglCetakSebelumnya = Utilities.formatDate(prevDate, timeZone, "dd/MM/yyyy HH:mm");
+    section[data-testid="stSidebar"] {
+        background: rgba(15, 23, 42, 0.5) !important;
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     
-    // B. DETEKSI CLIENT (DI-UPDATE: MENGGUNAKAN MATCH 'LITNUS' UNTUK SEMUA EMAIL LITNUS)
-    var senderEmail = latestMessage.getFrom().toLowerCase();
-    var client = "UMUM";
-    if (senderEmail.indexOf("litnus") !== -1) {
-      client = "LITNUS";
-    } else if (senderEmail.indexOf("nafalglobalnusantara@gmail.com") !== -1) {
-      client = "NAFAL";
-    } else if (senderEmail.indexOf("cetakbukumu.id@gmail.com") !== -1) {
-      client = "UMUM";
+    div[data-testid="stMetric"] {
+        background: rgba(20, 27, 45, 0.6) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
     }
     
-    // C. PARSING JUDUL & PENULIS
-    var cleanSubject = rawSubject.replace(/^(fwd|re):\s*/i, "").trim();
-    var judul = cleanSubject;
-    var penulis = "";
-    
-    var matchPenulis = cleanSubject.match(/(.*?)(?:\s*-\s*|\s+)Penulis:\s*(.*)/i);
-    if (matchPenulis) {
-      judul = matchPenulis[1].trim();
-      penulis = matchPenulis[2].trim();
-    } else {
-      var lastDashIndex = cleanSubject.lastIndexOf("-");
-      if (lastDashIndex !== -1) {
-        judul = cleanSubject.substring(0, lastDashIndex).trim();
-        penulis = cleanSubject.substring(lastDashIndex + 1).trim();
-      } else {
-        var bodyPenulisMatch = body.match(/Penulis:\s*([^\n\r]+)/i);
-        if (bodyPenulisMatch) {
-          penulis = bodyPenulisMatch[1].trim();
-        } else {
-          var bodyMatch = body.match(/Naik\s+cetak\s+([^\-\n\r]+)(?:\s*-\s*([^\n\r]+))?/i);
-          if (bodyMatch) {
-            judul = bodyMatch[1] ? bodyMatch[1].trim() : judul;
-            penulis = bodyMatch[2] ? bodyMatch[2].trim() : penulis;
-          }
-        }
-      }
-    }
-    penulis = penulis.replace(/^Penulis:\s*/i, "").trim();
-    
-    // D. PARSING JUMLAH CETAK
-    var jumlahCetak = "";
-    var qtyMatch = body.match(/(\d[\d\.,]*)\s*(?:eks|ex|eksemplar)\b/i);
-    if (qtyMatch) {
-      var cleanQty = qtyMatch[1].replace(/[^\d]/g, '');
-      jumlahCetak = parseInt(cleanQty, 10);
+    div[data-testid="stMetric"] *,
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricDelta"] {
+        font-weight: 700 !important;
     }
     
-    // E. PARSING UKURAN, KERTAS, COVER
-    var ukuran = matchDropdownValue(body, LIST_UKURAN, "UNESCO");
-    var kertas = matchDropdownValue(body, LIST_KERTAS, "HVS 70");
+    div[data-testid="stMetricLabel"] { color: #94a3b8 !important; }
+    div[data-testid="stMetricValue"] { color: #38bdf8 !important; }
     
-    var cover = "SOFT";
-    if (/\b(hard\s*cover|hard|hc)\b/i.test(body)) {
-      cover = "HARD";
-    } else if (/\b(soft\s*cover|soft|sc)\b/i.test(body)) {
-      cover = "SOFT";
-    } else if (/staples/i.test(body)) {
-      cover = "STAPLES";
-    } else if (/dilipat/i.test(body)) {
-      cover = "DILIPAT";
+    .stButton > button {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: #022c22 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3) !important;
     }
     
-    // F. PARSING ISI BW/FC
-    var isiBwFc = "HITAM PUTIH";
-    if (/warna\s*sebagian/i.test(body)) {
-      isiBwFc = "WARNA SEBAGIAN";
-    } else if (/full\s*(colour|color|warna)/i.test(body) || /\bwarna\b/i.test(body)) {
-      isiBwFc = "FULL WARNA";
+    button[title="Toggle Theme"] {
+        position: fixed !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        z-index: 9999999 !important;
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        background: rgba(30, 41, 59, 0.9) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        font-size: 26px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important;
+        padding: 0 !important;
+        transition: transform 0.2s ease, background 0.2s ease !important;
     }
+    button[title="Toggle Theme"]:hover { transform: scale(1.12); border-color: #10b981 !important; background: rgba(30, 41, 59, 1) !important; }
     
-    // G. PARSING PJ CETAK, MARKETING (KOLOM P), & CATATAN EXTRA
-    var textToSearch = (cleanSubject + "\n" + body).replace(/iqbatul/gi, "IQBAL");
-    var normalizedText = textToSearch.replace(/\//g, " - ");
-    
-    var pjCetak = "";
-    var marketing = "";
-    var catatanJudul = "";
-    
-    var segments = normalizedText.split("-");
-    var pjIndex = -1;
-    
-    for (var s = 0; s < segments.length; s++) {
-      var segText = segments[s].trim();
-      var foundPJ = matchStrictFromList(segText, LIST_PJ);
-      if (foundPJ !== "") {
-        pjCetak = foundPJ;
-        pjIndex = s;
-        break;
-      }
-    }
-    
-    if (pjIndex !== -1 && pjIndex + 1 < segments.length) {
-      var nextSegText = segments[pjIndex + 1].trim();
-      var foundMkt = matchStrictFromList(nextSegText, LIST_MARKETING);
-      if (foundMkt !== "") {
-        marketing = foundMkt;
-        if (pjIndex + 2 < segments.length) {
-          var remaining = segments.slice(pjIndex + 2).join("-").trim();
-          if (remaining !== "") catatanJudul = remaining;
-        }
-      } else {
-        var remainingNoMkt = segments.slice(pjIndex + 1).join("-").trim();
-        if (remainingNoMkt !== "") catatanJudul = remainingNoMkt;
-      }
-    } else if (pjIndex === -1) {
-      pjCetak = matchStrictFromList(textToSearch, LIST_PJ);
-    }
-    
-    // H. BACA LAMPIRAN PDF TERBARU (PEMERIKSAAN GANDA: LAMPIRAN EMAIL & LINK GOOGLE DRIVE)
-    var jumlahHalaman = "";
-    var foundLatestPdf = false;
-    var catatanDrive = "";
-    
-    for (var m = messages.length - 1; m >= 0; m--) {
-      var msg = messages[m];
-      var msgBodyFull = msg.getBody() + "\n" + msg.getPlainBody();
-      var attachments = msg.getAttachments();
-      
-      // H1. PROSES LAMPIRAN FISIK EMAIL
-      var pdfAttachments = [];
-      for (var a = 0; a < attachments.length; a++) {
-        if (attachments[a].getName().toLowerCase().indexOf(".pdf") !== -1) {
-          pdfAttachments.push(attachments[a]);
-        }
-      }
-      
-      if (pdfAttachments.length === 1) {
-        var singlePdf = pdfAttachments[0];
-        var pageCountSingle = getPdfPageCount(singlePdf.copyBlob());
-        if (pageCountSingle) {
-          jumlahHalaman = pageCountSingle;
-          foundLatestPdf = true;
-        }
-      } else if (pdfAttachments.length > 1) {
-        for (var k = pdfAttachments.length - 1; k >= 0; k--) {
-          var pdfAtt = pdfAttachments[k];
-          var fileName = pdfAtt.getName().toLowerCase();
-          var isExcluded = /(cover|print\s*bl|\bbl\b|combine|gabungan)/i.test(fileName);
-          
-          if (!isExcluded) {
-            var pageCountMulti = getPdfPageCount(pdfAtt.copyBlob());
-            if (pageCountMulti) {
-              jumlahHalaman = pageCountMulti;
-              foundLatestPdf = true;
-              break;
-            }
-          }
-        }
-      }
+    div[data-testid="stTable"] { background: rgba(20, 27, 45, 0.4) !important; border-radius: 14px !important; }
+</style>
+"""
 
-      // H2. PROSES LINK GOOGLE DRIVE (JIKA TIDAK ADA / GAGAL DARI LAMPIRAN FISIK)
-      if (!foundLatestPdf) {
-        var driveFileIds = extractDriveFileIds(msgBodyFull);
-        var validDrivePdfs = [];
-
-        for (var d = 0; d < driveFileIds.length; d++) {
-          try {
-            var driveFile = DriveApp.getFileById(driveFileIds[d]);
-            if (driveFile.getMimeType() === MimeType.PDF) {
-              validDrivePdfs.push(driveFile);
-            }
-          } catch (err) {
-            Logger.log("Gagal Akses Drive ID (" + driveFileIds[d] + "): " + err.message);
-            catatanDrive = "Link GDrive Terkunci / Butuh Akses";
-          }
-        }
-
-        if (validDrivePdfs.length === 1) {
-          var singleDrivePdf = validDrivePdfs[0];
-          var pageCountDriveSingle = getPdfPageCount(singleDrivePdf.getBlob());
-          if (pageCountDriveSingle) {
-            jumlahHalaman = pageCountDriveSingle;
-            foundLatestPdf = true;
-          }
-        } else if (validDrivePdfs.length > 1) {
-          for (var dk = validDrivePdfs.length - 1; dk >= 0; dk--) {
-            var driveAtt = validDrivePdfs[dk];
-            var driveFileName = driveAtt.getName().toLowerCase();
-            var isDriveExcluded = /(cover|print\s*bl|\bbl\b|combine|gabungan)/i.test(driveFileName);
-
-            if (!isDriveExcluded) {
-              var pageCountDriveMulti = getPdfPageCount(driveAtt.getBlob());
-              if (pageCountDriveMulti) {
-                jumlahHalaman = pageCountDriveMulti;
-                foundLatestPdf = true;
-                break;
-              }
-            }
-          }
-        }
-      }
-      
-      if (foundLatestPdf) {
-        break;
-      }
-    }
-    
-    var totalHlmCetak = "";
-    if (jumlahHalaman !== "" && jumlahCetak !== "") {
-      totalHlmCetak = jumlahHalaman * jumlahCetak;
-    }
-    
-    var rawTanggalMasuk = latestMessage.getDate();
-    var tanggalMasukFormatted = Utilities.formatDate(rawTanggalMasuk, timeZone, "dd/MM/yyyy HH:mm");
-
-    // I. CARI BARIS KOSONG PERTAMA BERDASARKAN KOLOM C
-    var targetRow = getNextRowInColumnC(sheet);
-    var noUrut = targetRow - 1; // Nomor Urut Otomatis (Kolom B)
-
-    // J. SUSUN DATA DARI KOLOM B SAMPAI P
-    var rowData = [
-      noUrut,                // Kolom B (NO)
-      tanggalMasukFormatted, // Kolom C (TANGGAL MASUK)
-      jenisCetak,            // Kolom D
-      judul,                 // Kolom E
-      penulis,               // Kolom F
-      jumlahHalaman,         // Kolom G
-      totalHlmCetak,         // Kolom H
-      ukuran,                // Kolom I
-      cover,                 // Kolom J
-      kertas,                // Kolom K
-      isiBwFc,               // Kolom L
-      jumlahCetak,           // Kolom M
-      client,                // Kolom N
-      pjCetak,               // Kolom O
-      marketing              // Kolom P
-    ];
-
-    // TULISKAN DATA MULAI KOLOM B (Kolom 2) SAMPAI KOLOM P
-    sheet.getRange(targetRow, 2, 1, rowData.length).setValues([rowData]);
-
-    // K. BERI BORDER DARI KOLOM B SAMPAI P
-    sheet.getRange(targetRow, 2, 1, rowData.length).setBorder(true, true, true, true, true, true);
-
-    // L. SISIPKAN CATATAN DAN FORMAT URGENT
-    var cellJudul = sheet.getRange(targetRow, 5); // Kolom E (JUDUL)
-    var listCatatan = [];
-    
-    if (tglCetakSebelumnya !== "") {
-      listCatatan.push("Cetak Terakhir: " + tglCetakSebelumnya);
+# --- DEFINISI CSS TEMA 2: FROSTED-GLASS PASTEL (LIGHT MODE) ---
+CSS_LIGHT_MODE = """
+<style>
+    .stApp {
+        background-color: #f1f5f9;
+        background-image: 
+            radial-gradient(circle at 10% 10%, rgba(186, 230, 253, 0.7) 0%, transparent 40%),
+            radial-gradient(circle at 90% 20%, rgba(254, 205, 211, 0.7) 0%, transparent 40%),
+            radial-gradient(circle at 50% 90%, rgba(221, 214, 254, 0.7) 0%, transparent 50%);
+        background-attachment: fixed;
+        color: #1e293b;
     }
 
-    var hasAttachmentsInLatest = latestMessage.getAttachments().length > 0;
-    var hasNewKeywords = /\b(file\s*baru|pakai\s*file\s*ini|revisi)\b/i.test(body);
-    
-    if (hasNewKeywords || hasAttachmentsInLatest) {
-      listCatatan.push("Pakai File Baru, Cek Lampiran Email!");
+    h1, h2, h3 { color: #0f172a !important; font-weight: 700 !important; }
+    p, span, label { color: #475569; font-weight: 500; }
+
+    section[data-testid="stSidebar"] {
+        background: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border-right: 1px solid rgba(255, 255, 255, 0.9) !important;
     }
 
-    if (catatanDrive !== "") {
-      listCatatan.push(catatanDrive);
+    div[data-testid="stMetric"] {
+        background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%) !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 10px 25px rgba(220, 39, 67, 0.25) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(220, 39, 67, 0.35) !important;
     }
     
-    if (catatanJudul !== "") {
-      listCatatan.push(catatanJudul);
+    div[data-testid="stMetric"] *,
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricDelta"],
+    div[data-testid="stMetric"] div,
+    div[data-testid="stMetric"] span,
+    div[data-testid="stMetric"] p {
+        color: #ffffff !important;
+        font-weight: 700 !important;
     }
-    
-    if (listCatatan.length > 0) {
-      cellJudul.setNote(listCatatan.join("\n"));
+
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div,
+    .stNumberInput input,
+    div[data-testid="stFileUploader"] {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        border-radius: 12px !important;
+        color: #0f172a !important;
+        backdrop-filter: blur(10px);
     }
-    
-    var isUrgent = /\burgent\b/i.test(rawSubject) || /\burgent\b/i.test(body);
-    if (isUrgent) {
-      cellJudul.setBackground("#8B0000").setFontColor("#FFFFFF");
-    } else {
-      cellJudul.setBackground(null).setFontColor("#000000");
+
+    .stButton > button {
+        background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 12px 24px !important;
+        box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3) !important;
     }
+    .stButton > button:hover {
+        box-shadow: 0 10px 30px rgba(236, 72, 153, 0.45) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    button[title="Toggle Theme"] {
+        position: fixed !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        z-index: 9999999 !important;
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 1) !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 26px !important;
+        padding: 0 !important;
+        transition: transform 0.2s ease, background 0.2s ease !important;
+    }
+    button[title="Toggle Theme"]:hover { transform: scale(1.12); background: rgba(255, 255, 255, 1) !important; }
     
-    // M. TANDAI EMAIL SEBAGAI SUDAH DIBACA
-    thread.markRead();
-  }
+    div[data-testid="stTable"] { background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(15px); border-radius: 16px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.9); }
+    td { color: #334155 !important; }
+</style>
+"""
+
+# --- RENDER TEMA & TOMBOL FLOATING ---
+if st.session_state.theme_mode == "dark":
+    st.markdown(CSS_DARK_MODE, unsafe_allow_html=True)
+    ikon_tema = "☀️" 
+else:
+    st.markdown(CSS_LIGHT_MODE, unsafe_allow_html=True)
+    ikon_tema = "🌙"
+
+st.button(ikon_tema, on_click=toggle_theme, help="Toggle Theme")
+
+# --- HEADER LAYOUT UTAMA ---
+st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
+st.write("Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis.")
+
+# --- DATABASE RUMUS HARGA ---
+PRICING_MATRIX = {
+    "A5 (14.8 x 21 cm)": {
+        "base_finishing_soft": 25000,
+        "HVS 70": {"warna": 500, "bw": 150},
+        "BP 57": {"warna": 550, "bw": 180}
+    },
+    "Unesco (15.5 x 23 cm)": {
+        "base_finishing_soft": 27000,
+        "HVS 70": {"warna": 600, "bw": 160},
+        "BP 57": {"warna": 650, "bw": 200}
+    },
+    "B5 ISO (17.6 x 25 cm)": {
+        "base_finishing_soft": 30000,
+        "HVS 70": {"warna": 800, "bw": 180},
+        "BP 57": {"warna": 850, "bw": 210}
+    },
+    "B5 JIS (18.2 x 25.7 cm)": {
+        "base_finishing_soft": 31000,
+        "HVS 70": {"warna": 900, "bw": 190},
+        "BP 57": {"warna": 950, "bw": 220}
+    },
+    "A4 (21 x 29.7 cm)": {
+        "base_finishing_soft": 31000,
+        "HVS 70": {"warna": 1000, "bw": 200},
+        "BP 57": {"warna": 1100, "bw": 250}
+    }
 }
 
-// =================================================================
-// FUNGSI PENDUKUNG: ANALISIS HALAMAN & KALKULATOR PROFIT (KONDISIONAL)
-// =================================================================
+# --- SIDEBAR: PENGATURAN PRODUKSI ---
+st.sidebar.header("📦 Spesifikasi Buku & Cetak")
+ukuran_buku = st.sidebar.selectbox("Ukuran Buku", list(PRICING_MATRIX.keys()))
+jenis_kertas = st.sidebar.selectbox("Jenis Kertas Isi", ["HVS 70", "BP 57"])
+mode_cetak = st.sidebar.selectbox("Mode Cetak", ["Duplex (Bolak-balik)", "Simplex (Satu Sisi)"])
+jenis_jilid = st.sidebar.selectbox("Jenis Jilid", ["Soft Cover", "Hard Cover"])
 
-/**
- * Membuat tabel HTML Analisis Halaman yang menyembunyikan kolom secara otomatis
- * - Hlm BW disembunyikan jika kosong/0
- * - Hlm Warna disembunyikan jika kosong/0
- * - Efisiensi Oplos disembunyikan jika bukan cetak campuran (BW & Warna)
- */
-function buatAnalisisHalaman(hlmBW, hlmWarna) {
-  var numBW = parseInt(hlmBW, 10);
-  var numWarna = parseInt(hlmWarna, 10);
-  
-  var hasBW = !isNaN(numBW) && numBW > 0;
-  var hasWarna = !isNaN(numWarna) && numWarna > 0;
-  var isCampuran = hasBW && hasWarna; // Hanya aktif jika ada BW DAN Warna
+st.sidebar.markdown("---")
+st.sidebar.header("🔢 Volume Oplos")
+jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_value=1, value=1, step=1)
 
-  // Jika keduanya kosong, kembalikan teks kosong
-  if (!hasBW && !hasWarna) return "";
+base_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
+base_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
 
-  var html = '<h3>📊 Analisis Halaman & Kalkulator Selisih Profit</h3>';
-  html += '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; text-align: center;">';
-  
-  // 1. HEADER TABEL DINAMIS
-  html += '<tr style="background-color: #f2f2f2;">';
-  if (hasBW) html += '<th>Total Halaman BW</th>';
-  if (hasWarna) html += '<th>Total Halaman Warna</th>';
-  if (isCampuran) html += '<th>Efisiensi Oplos</th>';
-  html += '</tr>';
+if mode_cetak == "Simplex (Satu Sisi)":
+    rate_warna = int(base_warna * 1.5)
+    rate_bw = int(base_bw * 1.5)
+else:
+    rate_warna = base_warna
+    rate_bw = base_bw
 
-  // 2. BARIS DATA DINAMIS
-  html += '<tr>';
-  if (hasBW) html += '<td>' + numBW + ' Halaman</td>';
-  if (hasWarna) html += '<td>' + numWarna + ' Halaman</td>';
-  
-  if (isCampuran) {
-    var totalHalaman = numBW + numWarna;
-    var persentaseWarna = ((numWarna / totalHalaman) * 100).toFixed(1);
-    html += '<td>' + persentaseWarna + '% Warna</td>';
-  }
-  
-  html += '</tr>';
-  html += '</table>';
+base_soft = PRICING_MATRIX[ukuran_buku]["base_finishing_soft"]
+if jenis_jilid == "Hard Cover":
+    rate_finishing_base = int(base_soft * 1.5)
+else:
+    rate_finishing_base = base_soft
 
-  return html;
-}
-
-// =================================================================
-// FUNGSI PENDUKUNG OTOMASI & PDF PARSER
-// =================================================================
-
-/**
- * EKSTRAKSI ID FILE GOOGLE DRIVE DARI ISI PESAN EMAIL
- */
-function extractDriveFileIds(text) {
-  var fileIds = [];
-  var regex = /(?:https?:\/\/)?(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)?([a-zA-Z0-9_-]{25,})/g;
-  var match;
-
-  while ((match = regex.exec(text)) !== null) {
-    var id = match[1];
-    if (fileIds.indexOf(id) === -1) {
-      fileIds.push(id);
-    }
-  }
-  return fileIds;
-}
-
-/**
- * PRECISION MULTI-LAYER PDF PARSER
- */
-function getPdfPageCount(blob) {
-  try {
-    var str = blob.getDataAsString('ISO-8859-1');
+# --- FUNGSI PROSES PDF DENGAN CACHE ---
+@st.cache_data(show_spinner="Memproses pemisahan halaman PDF...")
+def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
+    pure_color_pages = []
     
-    // LEVEL 1: LINEARIZED PDF HEADER (/N <jumlah_halaman>)
-    var linMatch = str.match(/\/Linearized\b[^\/]{0,500}?\/N\s+(\d+)/i);
-    if (linMatch && linMatch[1]) {
-      var linCount = parseInt(linMatch[1], 10);
-      if (linCount > 0) return linCount;
-    }
-
-    // LEVEL 2: METADATA XML ADOBE XMP
-    var xmpMatch = str.match(/xmpTPg:NPages\s*=\s*"(\d+)"/i) || 
-                   str.match(/<xmpTPg:NPages>(\d+)<\/xmpTPg:NPages>/i) ||
-                   str.match(/pdf:NumPages\s*=\s*"(\d+)"/i) ||
-                   str.match(/<pdf:NumPages>(\d+)<\/pdf:NumPages>/i);
-    if (xmpMatch && xmpMatch[1]) {
-      var xmpCount = parseInt(xmpMatch[1], 10);
-      if (xmpCount > 0) return xmpCount;
-    }
+    if not force_bw:
+        for page_num in range(total_p):
+            page = doc[page_num]
+            pix = page.get_pixmap(dpi=72)
+            samples = pix.samples
+            n = pix.n
+            
+            total_pixels = pix.width * pix.height
+            color_pixel_count = 0
+            
+            if n == 3:  # RGB
+                for i in range(0, len(samples), n * 2): 
+                    r = samples[i]
+                    g = samples[i+1]
+                    b = samples[i+2]
+                    if abs(r - g) > sens or abs(r - b) > sens or abs(g - b) > sens:
+                        color_pixel_count += 1
+                        
+            elif n == 4:  # CMYK
+                for i in range(0, len(samples), n * 2):
+                    c = samples[i]
+                    m = samples[i+1]
+                    y = samples[i+2]
+                    if c > sens or m > sens or y > sens:
+                        color_pixel_count += 1
+            
+            color_ratio = (color_pixel_count / total_pixels) * 100
+            if color_ratio >= min_pct:
+                pure_color_pages.append(page_num + 1)
     
-    // LEVEL 3: STRICT ROOT CATALOG (/Type /Pages /Count N)
-    var strictPagesMatch = str.match(/\/Type\s*\/Pages\b[\s\S]{0,500}?\/Count\s+(\d+)/gi);
-    if (strictPagesMatch) {
-      var maxPages = 0;
-      for (var c = 0; c < strictPagesMatch.length; c++) {
-        var m = strictPagesMatch[c].match(/\/Count\s+(\d+)/i);
-        if (m && m[1]) {
-          var p = parseInt(m[1], 10);
-          if (p > maxPages) maxPages = p;
-        }
-      }
-      if (maxPages > 0) return maxPages;
-    }
+    final_color_set = set(pure_color_pages)
+    if mode == "Duplex (Bolak-balik)" and not force_bw:
+        for page in pure_color_pages:
+            if page % 2 != 0: 
+                sebaliknya = page + 1
+                if sebaliknya <= total_p:
+                    final_color_set.add(sebaliknya)
+            else: 
+                sebaliknya = page - 1
+                if sebaliknya >= 1:
+                    final_color_set.add(sebaliknya)
+                    
+    final_color_list = sorted(list(final_color_set))
+    final_bw_list = [p for p in range(1, total_p + 1) if p not in final_color_list]
     
-    // LEVEL 4: FALLBACK REVERSE /Count DENGAN /Type /Pages
-    var reverseMatch = str.match(/\/Count\s+(\d+)[\s\S]{0,500}?\/Type\s*\/Pages\b/gi);
-    if (reverseMatch) {
-      var maxRev = 0;
-      for (var r = 0; r < reverseMatch.length; r++) {
-        var rm = reverseMatch[r].match(/\/Count\s+(\d+)/i);
-        if (rm && rm[1]) {
-          var valRev = parseInt(rm[1], 10);
-          if (valRev > maxRev) maxRev = valRev;
-        }
-      }
-      if (maxRev > 0) return maxRev;
-    }
-
-    // LEVEL 5: FALLBACK HITUNG /Type /Page
-    var pageMatches = str.match(/\/Type\s*\/Page\b/g);
-    if (pageMatches && pageMatches.length > 0) {
-      return pageMatches.length;
-    }
+    doc_warna = fitz.open()
+    doc_bw = fitz.open()
     
-  } catch (e) {
-    Logger.log("Gagal membaca halaman PDF: " + e.toString());
-  }
-  return "";
-}
+    for page_num in range(total_p):
+        actual_page = page_num + 1
+        if actual_page in final_color_list:
+            doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
+        else:
+            doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
+            
+    pdf_warna_bytes = doc_warna.write()
+    pdf_bw_bytes = doc_bw.write()
+    
+    doc_warna.close()
+    doc_bw.close()
+    doc.close()
+    
+    return final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes
 
-function getNextRowInColumnC(sheet) {
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 1) return 2;
-  
-  var colCValues = sheet.getRange("C1:C" + lastRow).getValues();
-  for (var i = colCValues.length - 1; i >= 0; i--) {
-    if (colCValues[i][0] !== "" && colCValues[i][0] !== null) {
-      return i + 2;
-    }
-  }
-  return 2;
-}
+# --- PILIHAN MODE INPUT ---
+st.subheader("🛠️ Pilih Metode Input Data")
+mode_input = st.radio("Metode Analisis:", ["Otomatis (Upload PDF & Split File)", "Manual (Input Jumlah Halaman Saja)"], horizontal=True)
 
-function matchStrictFromList(text, list) {
-  for (var i = 0; i < list.length; i++) {
-    var reg = new RegExp("\\b" + list[i].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", 'i');
-    if (reg.test(text)) {
-      return list[i];
-    }
-  }
-  return "";
-}
+total_pages = 0
+count_warna = 0
+count_bw = 0
+nama_file_asli = "Order_Manual_Litnus"
+final_color_list = []
+final_bw_list = []
+pdf_warna_bytes = None
+pdf_bw_bytes = None
+ready_to_calculate = False
 
-function matchDropdownValue(text, list, defaultValue) {
-  for (var i = 0; i < list.length; i++) {
-    var reg = new RegExp(list[i].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-    if (reg.test(text)) {
-      return list[i];
-    }
-  }
-  return defaultValue;
-}
+if mode_input == "Otomatis (Upload PDF & Split File)":
+    st.sidebar.markdown("---")
+    st.sidebar.header("🚨 Mode Darurat & Parameter")
+    force_bw_all = st.sidebar.checkbox("Paksa SEMUA Halaman Menjadi BW", value=False)
+    sensitivitas = st.sidebar.slider("Batas Kontras Warna", min_value=5, max_value=50, value=25, step=5)
+    min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_value=0.01, max_value=5.00, value=0.10, step=0.05)
+    
+    uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
+    
+    if uploaded_file is not None:
+        nama_file_asli = os.path.splitext(uploaded_file.name)[0]
+        input_bytes = uploaded_file.read()
+        
+        temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
+        total_pages = len(temp_doc)
+        temp_doc.close()
+        
+        st.info(f"📄 File berhasil dimuat: {uploaded_file.name} | Total: {total_pages} Halaman")
+        
+        final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes = process_and_split_pdf(
+            input_bytes, force_bw_all, sensitivitas, min_color_percentage, mode_cetak, total_pages
+        )
+        count_warna = len(final_color_list)
+        count_bw = len(final_bw_list)
+        ready_to_calculate = True
 
-function getOrCreateMonthlySheet(ss, sheetName) {
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
-    var headers = [
-      "", "NO", "TANGGAL MASUK", "JENIS CETAK", "JUDUL", "NAMA PENULIS", 
-      "JUMLAH HALAMAN", "TOTAL HLM CETAK", "UKURAN", "COVER", 
-      "KERTAS", "ISI BW/FC", "JUMLAH CETAK", "CLIENT", 
-      "PJ CETAK", "MARKETING"
-    ];
-    sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3");
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
-}
+else:
+    st.info("💡 Mode Manual Aktif: Masukkan jumlah halaman secara langsung di bawah.")
+    nama_file_asli = st.text_input("Nama File / Judul Buku", value="Buku_Titipan_Customer")
+    
+    col_in1, col_in2 = st.columns(2)
+    with col_in1:
+        count_warna = int(st.number_input("Jumlah Halaman WARNA", min_value=0, value=0, step=1))
+    with col_in2:
+        count_bw = int(st.number_input("Jumlah Halaman HITAM PUTIH (BW)", min_value=0, value=0, step=1))
+        
+    total_pages = count_warna + count_bw
+    ready_to_calculate = total_pages > 0
+
+# --- BLOK PROSES KALKULASI UTAMA ---
+if ready_to_calculate:
+    tz_wib = timezone(timedelta(hours=7))
+    waktu_sekarang = datetime.now(tz_wib)
+    str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S WIB")
+    str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
+    
+    diskon_isi_persen = 0
+    tiers = [4, 10, 20, 30, 50, 100, 200, 500, 1000]
+    for idx, tier in enumerate(tiers):
+        if jumlah_cetak >= tier:
+            diskon_isi_persen = (idx + 1) * 4
+            
+    if diskon_isi_persen > 32:
+        diskon_isi_persen = 32
+        
+    rate_warna_akhir = int(rate_warna * (1 - diskon_isi_persen / 100))
+    rate_bw_akhir = int(rate_bw * (1 - diskon_isi_persen / 100))
+    
+    cost_warna_per_buku = count_warna * rate_warna_akhir
+    cost_bw_per_buku = count_bw * rate_bw_akhir
+    total_isi_per_buku = cost_warna_per_buku + cost_bw_per_buku
+    
+    calc_oplos_finishing = min(jumlah_cetak, 200)
+    persen_diskon_finishing = (calc_oplos_finishing // 5) * 2
+    if persen_diskon_finishing > 40:
+        persen_diskon_finishing = 40
+        
+    nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
+    rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
+    
+    total_harga_per_eks = total_isi_per_buku + rate_finishing_akhir
+    total_isi_all = total_isi_per_buku * jumlah_cetak
+    total_finishing_all = rate_finishing_akhir * jumlah_cetak
+    grand_total = total_harga_per_eks * jumlah_cetak
+    nominal_dp = int(grand_total * 0.5)
+    
+    cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
+    hemat = cost_full_warna_all - grand_total
+    
+    st.markdown("---")
+    st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
+    
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("Total Halaman Warna", f"{count_warna} hlm")
+    c2.metric("Total Halaman BW", f"{count_bw} hlm")
+    c3.metric("TOTAL HARGA/EKS", f"Rp {total_harga_per_eks:,}")
+    c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
+    c5.metric("Full Colour", f"Rp {cost_full_warna_all:,}")
+    c6.metric("Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat")
+
+    st.markdown("### 💰 Ringkasan Biaya Produksi")
+    
+    table_html = f"""
+    <table style="width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 15px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%);">
+                <th style="padding: 12px 16px; text-align: left; font-weight: 700; font-size: 16px; color: #fde047 !important;">Spesifikasi Buku & Komponen</th>
+                <th style="padding: 12px 16px; text-align: left; font-weight: 700; font-size: 16px; color: #fde047 !important;">Detail Perhitungan</th>
+            </tr>
+        </thead>
+        <tbody style="background: {'rgba(30, 41, 59, 0.5)' if st.session_state.theme_mode == 'dark' else 'rgba(255, 255, 255, 0.8)'};">
+            <tr>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Ukuran & Bahan Kertas Isi</td>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{ukuran_buku} | Kertas {jenis_kertas} ({mode_cetak})</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Jilid Cover Buku</td>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{jenis_jilid}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Cetak Isi (Warna & BW) x {jumlah_cetak} Eks</td>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Finishing Jilid x {jumlah_cetak} Eks</td>
+                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)</td>
+            </tr>
+            <tr style="background: rgba(16, 185, 129, 0.15);">
+                <td style="padding: 12px 16px; font-weight: 700; color: #10b981;">PILIHAN 1: GRAND TOTAL (Lunas)</td>
+                <td style="padding: 12px 16px; font-weight: 700; color: #10b981;">Rp {grand_total:,}</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 16px; font-weight: 600;">PILIHAN 2: NOMINAL UANG MUKA (DP 50%)</td>
+                <td style="padding: 12px 16px; font-weight: 600;">Rp {nominal_dp:,}</td>
+            </tr>
+        </tbody>
+    </table>
+    """
+    st.markdown(table_html, unsafe_allow_html=True)
+    
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        with st.expander("👁️ Lihat Rincian Nomor Halaman"):
+            st.write(f"🎨 **Halaman Warna ({count_warna} hlm):** {final_color_list}")
+            st.write(f"⚫ **Halaman BW ({count_bw} hlm):** {final_bw_list}")
+            
+    def format_halaman_list(lst):
+        if not lst: return "[]"
+        lines = []
+        for i in range(0, len(lst), 15):
+            lines.append(", ".join(map(str, lst[i:i+15])))
+        return "[\n    " + ",\n    ".join(lines) + "\n   ]"
+
+    struk_text = f"""======================================================================
+                    LITNUS PRINTING
+                    Struk Pembayaran
+======================================================================
+
+Tanggal      : {str_tanggal}
+No. Transaksi: {str_trx}
+Nama File    : {nama_file_asli}
+Total Halaman: {total_pages}
+Ukuran Buku  : {ukuran_buku}
+Bahan Kertas : {jenis_kertas}
+Jenis Jilid  : {jenis_jilid}
+Mode Cetak   : {mode_cetak}
+Jumlah Cetak : {jumlah_cetak} eksemplar
+
+----------------------------------------------------------------------
+RINCIAN HARGA (PER BUKU - SETELAH DISKON OPLOS & PENYESUAIAN MODE):
+----------------------------------------------------------------------
+
+🎨 WARNA ({count_warna} halaman)"""
+
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        text_detail_warna = format_halaman_list(final_color_list)
+        struk_text += f"\n   Detail  : {text_detail_warna}"
+        
+    struk_text += f"\n   Biaya   : Rp {cost_warna_per_buku:,}\n\n⚫ HITAM PUTIH ({count_bw} halaman)"
+
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        text_detail_bw = format_halaman_list(final_bw_list)
+        struk_text += f"\n   Detail  : {text_detail_bw}"
+        
+    struk_text += f"""
+   Biaya   : Rp {cost_bw_per_buku:,}
+
+----------------------------------------------------------------------
+RINCIAN AKUMULASI VOLUME PRODUKSI:
+----------------------------------------------------------------------
+📝 TOTAL ISI PER EKS : Rp {total_isi_per_buku:,}
+🛠️ FINISHING PER EKS : Rp {rate_finishing_akhir:,} ({jenis_jilid.upper()})
+💵 TOTAL HARGA PER EKS: Rp {total_harga_per_eks:,} (Isi + Finishing)
+
+📊 PERKALIAN TOTAL VOLUME:
+   Rp {total_harga_per_eks:,} x {jumlah_cetak} Eks = Rp {grand_total:,}
+
+----------------------------------------------------------------------
+💰 OPSI PILIHAN PEMBAYARAN:
+----------------------------------------------------------------------
+ [1] TOTAL LUNAS : Rp {grand_total:,}
+ [2] NOMINAL DP   : Rp {nominal_dp:,} (50% dari total biaya)
+----------------------------------------------------------------------
+
+Sebelum Kami proses, silahkan Transfer senilai total biaya di atas 
+atau DP minimal 50% dulu agar orderan diproses. 
+
+Berikut detail rekening kami:
+• Mandiri : 144-00-2306065-7 a/n PT Literasi Nusantara Abadi Grup
+• BCA     : 117-737-3737     a/n PT Literasi Nusantara Abadi Grup
+
+Dan mohon kirimkan bukti otentik setelah transfer.
+
+Terimakasih banyak, semoga diberi keberkahan dan kelancaran 
+dalam hidup.
+----------------------------------------------------------------------
+"""
+
+    st.markdown("---")
+    st.subheader("📄 Struk & Pemisah File Siap Cetak")
+    
+    if mode_input == "Otomatis (Upload PDF & Split File)":
+        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        with col_btn1:
+            st.download_button(
+                label="📥 Unduh Struk Analisis",
+                data=struk_text,
+                file_name=f"Struk_{nama_file_asli}.txt",
+                mime="text/plain"
+            )
+        with col_btn2:
+            st.download_button(
+                label="🎨 Download PDF WARNA",
+                data=pdf_warna_bytes,
+                file_name=f"{nama_file_asli}_Mesin_WARNA.pdf",
+                mime="application/pdf"
+            )
+        with col_btn3:
+            st.download_button(
+                label="⚫ Download PDF BW",
+                data=pdf_bw_bytes,
+                file_name=f"{nama_file_asli}_Mesin_BW.pdf",
+                mime="application/pdf"
+            )
+    else:
+        st.download_button(
+            label="📥 Unduh Struk Analisis Manual",
+            data=struk_text,
+            file_name=f"Struk_Manual_{nama_file_asli}.txt",
+            mime="text/plain"
+        )
+            
+    st.markdown("---")
+    st.markdown("### 📝 Pratinjau Struk Kasir")
+    st.code(struk_text, language="text")
+
+# --- FOOTER HALAMAN ---
+st.markdown("---")
+footer_color = "#10b981" if st.session_state.theme_mode == "dark" else "#ec4899"
+footer_html = f"""
+    <div style="text-align: center; color: rgba(148, 163, 184, 0.8); font-size: 14px; padding: 10px 0px;">
+        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: {footer_color}; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
+    </div>
+"""
+st.markdown(footer_html, unsafe_allow_html=True)
