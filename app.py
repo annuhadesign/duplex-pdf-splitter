@@ -422,13 +422,22 @@ if ready_to_calculate:
     st.markdown("---")
     st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
     
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("Total Halaman Warna", f"{count_warna} hlm")
-    c2.metric("Total Halaman BW", f"{count_bw} hlm")
-    c3.metric("TOTAL HARGA/EKS", f"Rp {total_harga_per_eks:,}")
-    c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
-    c5.metric("Full Colour", f"Rp {cost_full_warna_all:,}")
-    c6.metric("Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat")
+    # KONDISI PENAYANGAN METRIK: EFISIENSI OPLOS HANYA DITAMPILKAN JIKA WARNA > 0
+    if count_warna > 0:
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Total Halaman Warna", f"{count_warna} hlm")
+        c2.metric("Total Halaman BW", f"{count_bw} hlm")
+        c3.metric("TOTAL HARGA/EKS", f"Rp {total_harga_per_eks:,}")
+        c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
+        c5.metric("Full Colour", f"Rp {cost_full_warna_all:,}")
+        c6.metric("Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat")
+    else:
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Total Halaman Warna", f"{count_warna} hlm")
+        c2.metric("Total Halaman BW", f"{count_bw} hlm")
+        c3.metric("TOTAL HARGA/EKS", f"Rp {total_harga_per_eks:,}")
+        c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
+        c5.metric("Full Colour", f"Rp {cost_full_warna_all:,}")
 
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     
