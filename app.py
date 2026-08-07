@@ -184,7 +184,6 @@ CSS_LIGHT_MODE = """
     button[title="Toggle Theme"]:hover { transform: scale(1.12); background: rgba(255, 255, 255, 1) !important; }
     
     div[data-testid="stTable"] { background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(15px); border-radius: 16px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.9); }
-    th { color: #64748b !important; }
     td { color: #334155 !important; }
 </style>
 """
@@ -442,7 +441,6 @@ if ready_to_calculate:
 
     st.markdown("### 💰 Ringkasan Biaya Produksi")
     
-    # Tabel kustom HTML: Padding dikurangi & ukuran font header diperbesar (18px) dengan warna teks putih di kedua mode
     table_html = f"""
     <table style="width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 15px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
         <thead>
