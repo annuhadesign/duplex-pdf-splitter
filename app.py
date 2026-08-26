@@ -1,244 +1,584 @@
 import fitz  # PyMuPDF
 import os
+import re
 import streamlit as st
 from datetime import datetime, timedelta, timezone
 
-st.set_page_config(page_title="Litnus Printing - PDF Splitter", layout="wide")
+# ============================================================
+# LITNUS PRINTING
+# PDF SPLITTER & COST CALCULATOR
+# ============================================================
 
-# --- INISIALISASI STATE TEMA ---
+st.set_page_config(
+    page_title="Litnus Printing - Production Calculator",
+    page_icon="🖨️",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ============================================================
+# THEME STATE
+# ============================================================
+
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "dark"
 
-def toggle_theme():
-    if st.session_state.theme_mode == "dark":
-        st.session_state.theme_mode = "light"
-    else:
-        st.session_state.theme_mode = "dark"
 
-# --- DEFINISI CSS TEMA 1: DARK EMERALD GLASS (DARK MODE) ---
+def toggle_theme():
+    st.session_state.theme_mode = (
+        "light" if st.session_state.theme_mode == "dark" else "dark"
+    )
+
+
+# ============================================================
+# DESIGN SYSTEM
+# ============================================================
+
 CSS_DARK_MODE = """
 <style>
-    .stApp {
-        background-color: #0a0d14;
-        background-image: 
-            radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 45%),
-            radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.18) 0%, transparent 45%),
-            radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 50%);
-        background-attachment: fixed;
-        color: #e2e8f0;
-    }
-    h1, h2, h3 { color: #ffffff !important; font-weight: 700 !important; }
-    
-    section[data-testid="stSidebar"] {
-        background: rgba(15, 23, 42, 0.5) !important;
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-    
-    div[data-testid="stMetric"] {
-        background: rgba(20, 27, 45, 0.6) !important;
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 16px !important;
-        padding: 20px !important;
-        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
-    }
-    
-    div[data-testid="stMetric"] *,
-    div[data-testid="stMetricLabel"],
-    div[data-testid="stMetricValue"],
-    div[data-testid="stMetricDelta"] {
-        font-weight: 700 !important;
-    }
-    
-    div[data-testid="stMetricLabel"] { color: #94a3b8 !important; }
-    div[data-testid="stMetricValue"] { color: #38bdf8 !important; }
-    
-    .stButton > button {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        color: #022c22 !important;
-        border: none !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3) !important;
-    }
-    
-    button[title="Toggle Theme"] {
-        position: fixed !important;
-        bottom: 30px !important;
-        right: 30px !important;
-        z-index: 9999999 !important;
-        width: 60px !important;
-        height: 60px !important;
-        border-radius: 50% !important;
-        background: rgba(30, 41, 59, 0.9) !important;
-        backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        font-size: 26px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important;
-        padding: 0 !important;
-        transition: transform 0.2s ease, background 0.2s ease !important;
-    }
-    button[title="Toggle Theme"]:hover { transform: scale(1.12); border-color: #10b981 !important; background: rgba(30, 41, 59, 1) !important; }
-    
-    div[data-testid="stTable"] { background: rgba(20, 27, 45, 0.4) !important; border-radius: 14px !important; }
+:root {
+    --bg: #070b12;
+    --panel: rgba(15, 23, 42, .70);
+    --panel2: rgba(17, 31, 51, .72);
+    --border: rgba(255,255,255,.09);
+    --text: #e5edf7;
+    --muted: #8fa3b8;
+    --accent: #10b981;
+    --accent2: #22d3ee;
+    --gold: #facc15;
+}
+.stApp {
+    background:
+        radial-gradient(circle at 8% 10%, rgba(16,185,129,.18), transparent 32%),
+        radial-gradient(circle at 92% 18%, rgba(34,211,238,.14), transparent 30%),
+        radial-gradient(circle at 52% 92%, rgba(99,102,241,.12), transparent 36%),
+        #070b12;
+    color: var(--text);
+}
+.block-container { padding-top: 1.3rem; max-width: 1500px; }
+h1,h2,h3 { color: #fff !important; }
+p, label, span { color: var(--text); }
+section[data-testid="stSidebar"] {
+    background: rgba(8,15,27,.72) !important;
+    backdrop-filter: blur(22px);
+    border-right: 1px solid var(--border);
+}
+div[data-testid="stMetric"] {
+    background: linear-gradient(145deg, rgba(20,35,53,.82), rgba(10,20,34,.70)) !important;
+    border: 1px solid rgba(255,255,255,.08) !important;
+    border-radius: 18px !important;
+    padding: 18px !important;
+    box-shadow: 0 12px 35px rgba(0,0,0,.28);
+}
+div[data-testid="stMetricLabel"] { color:#8fa3b8 !important; }
+div[data-testid="stMetricValue"] { color:#5eead4 !important; }
+.stButton > button, .stDownloadButton > button {
+    border: 0 !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+}
+.stButton > button {
+    background: linear-gradient(135deg,#10b981,#059669) !important;
+    color:#02140f !important;
+    box-shadow: 0 8px 25px rgba(16,185,129,.20);
+}
+.stDownloadButton > button {
+    background: linear-gradient(135deg,#0ea5e9,#06b6d4) !important;
+    color:white !important;
+}
+div[data-testid="stFileUploader"],
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div,
+textarea, input {
+    border-radius: 12px !important;
+}
+div[data-testid="stAlert"] { border-radius: 14px; }
+.glass-card {
+    background: linear-gradient(145deg, rgba(18,32,50,.78), rgba(10,20,34,.62));
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 20px;
+    padding: 22px;
+    margin: 8px 0 18px;
+    box-shadow: 0 15px 40px rgba(0,0,0,.20);
+    backdrop-filter: blur(18px);
+}
+.hero {
+    padding: 28px 30px;
+    border-radius: 24px;
+    background:
+        linear-gradient(120deg, rgba(16,185,129,.18), rgba(14,165,233,.10)),
+        rgba(9,17,29,.70);
+    border: 1px solid rgba(94,234,212,.15);
+    box-shadow: 0 18px 55px rgba(0,0,0,.22);
+    margin-bottom: 18px;
+}
+.hero-kicker { color:#5eead4; font-weight:800; letter-spacing:1.5px; font-size:13px; }
+.hero-title { color:#fff; font-size:34px; font-weight:900; margin:3px 0; }
+.hero-sub { color:#a7b7c9; font-size:15px; }
+.pill {
+    display:inline-block;
+    padding:6px 11px;
+    border-radius:999px;
+    background:rgba(16,185,129,.12);
+    border:1px solid rgba(16,185,129,.22);
+    color:#6ee7b7;
+    font-size:12px;
+    font-weight:700;
+    margin:4px 5px 0 0;
+}
+.section-title { font-size:18px; font-weight:800; color:#fff; margin:12px 0; }
+.result-card {
+    border-radius:18px;
+    padding:18px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(15,27,43,.70);
+}
+.result-color { border-color:rgba(16,185,129,.35); }
+.result-bw { border-color:rgba(96,165,250,.25); }
+.page-list {
+    max-height:180px;
+    overflow:auto;
+    padding:12px;
+    border-radius:12px;
+    background:rgba(0,0,0,.16);
+    font-family:monospace;
+    font-size:12px;
+    color:#cbd5e1;
+}
+button[title="Toggle Theme"] {
+    position: fixed !important;
+    right: 28px !important;
+    bottom: 28px !important;
+    z-index: 999999 !important;
+    width: 58px !important;
+    height: 58px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    background:rgba(20,35,53,.94) !important;
+    color:white !important;
+    border:1px solid rgba(255,255,255,.14) !important;
+    box-shadow:0 10px 30px rgba(0,0,0,.45) !important;
+}
+.footer {
+    text-align:center;
+    color:#718096;
+    padding:18px 0 5px;
+    font-size:12px;
+}
 </style>
 """
 
-# --- DEFINISI CSS TEMA 2: FROSTED-GLASS PASTEL (LIGHT MODE) ---
 CSS_LIGHT_MODE = """
 <style>
-    .stApp {
-        background-color: #f1f5f9;
-        background-image: 
-            radial-gradient(circle at 10% 10%, rgba(186, 230, 253, 0.7) 0%, transparent 40%),
-            radial-gradient(circle at 90% 20%, rgba(254, 205, 211, 0.7) 0%, transparent 40%),
-            radial-gradient(circle at 50% 90%, rgba(221, 214, 254, 0.7) 0%, transparent 50%);
-        background-attachment: fixed;
-        color: #1e293b;
-    }
-
-    h1, h2, h3 { color: #0f172a !important; font-weight: 700 !important; }
-    p, span, label { color: #475569; font-weight: 500; }
-
-    section[data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.75) !important;
-        backdrop-filter: blur(25px);
-        -webkit-backdrop-filter: blur(25px);
-        border-right: 1px solid rgba(255, 255, 255, 0.9) !important;
-    }
-
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%) !important;
-        border-radius: 20px !important;
-        padding: 20px !important;
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 10px 25px rgba(220, 39, 67, 0.25) !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 30px rgba(220, 39, 67, 0.35) !important;
-    }
-    
-    div[data-testid="stMetric"] *,
-    div[data-testid="stMetricLabel"],
-    div[data-testid="stMetricValue"],
-    div[data-testid="stMetricDelta"],
-    div[data-testid="stMetric"] div,
-    div[data-testid="stMetric"] span,
-    div[data-testid="stMetric"] p {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-    }
-
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    .stNumberInput input,
-    div[data-testid="stFileUploader"] {
-        background: rgba(255, 255, 255, 0.9) !important;
-        border: 1px solid rgba(226, 232, 240, 0.9) !important;
-        border-radius: 12px !important;
-        color: #0f172a !important;
-        backdrop-filter: blur(10px);
-    }
-
-    .stButton > button {
-        background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        border: none !important;
-        border-radius: 14px !important;
-        padding: 12px 24px !important;
-        box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3) !important;
-    }
-    .stButton > button:hover {
-        box-shadow: 0 10px 30px rgba(236, 72, 153, 0.45) !important;
-        transform: translateY(-2px) !important;
-    }
-
-    button[title="Toggle Theme"] {
-        position: fixed !important;
-        bottom: 30px !important;
-        right: 30px !important;
-        z-index: 9999999 !important;
-        width: 60px !important;
-        height: 60px !important;
-        border-radius: 50% !important;
-        background: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(15px) !important;
-        border: 1px solid rgba(255, 255, 255, 1) !important;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 26px !important;
-        padding: 0 !important;
-        transition: transform 0.2s ease, background 0.2s ease !important;
-    }
-    button[title="Toggle Theme"]:hover { transform: scale(1.12); background: rgba(255, 255, 255, 1) !important; }
-    
-    div[data-testid="stTable"] { background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(15px); border-radius: 16px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.9); }
-    td { color: #334155 !important; }
+.stApp {
+    background:
+        radial-gradient(circle at 8% 10%, rgba(186,230,253,.60), transparent 32%),
+        radial-gradient(circle at 92% 18%, rgba(254,205,211,.55), transparent 30%),
+        radial-gradient(circle at 52% 92%, rgba(221,214,254,.65), transparent 36%),
+        #f3f6fb;
+    color:#1e293b;
+}
+.block-container { padding-top:1.3rem; max-width:1500px; }
+h1,h2,h3 { color:#0f172a !important; }
+p,label,span { color:#475569; }
+section[data-testid="stSidebar"] {
+    background:rgba(255,255,255,.78) !important;
+    backdrop-filter:blur(22px);
+    border-right:1px solid rgba(255,255,255,.9);
+}
+div[data-testid="stMetric"] {
+    background:linear-gradient(145deg,#ffffff,#f8fafc) !important;
+    border:1px solid rgba(148,163,184,.18) !important;
+    border-radius:18px !important;
+    padding:18px !important;
+    box-shadow:0 12px 30px rgba(15,23,42,.08);
+}
+div[data-testid="stMetricLabel"] { color:#64748b !important; }
+div[data-testid="stMetricValue"] { color:#059669 !important; }
+.stButton > button {
+    background:linear-gradient(135deg,#8b5cf6,#ec4899) !important;
+    color:white !important;
+    border:0 !important;
+    border-radius:12px !important;
+    font-weight:700 !important;
+}
+.stDownloadButton > button {
+    background:linear-gradient(135deg,#0284c7,#06b6d4) !important;
+    color:white !important;
+    border:0 !important;
+    border-radius:12px !important;
+    font-weight:700 !important;
+}
+div[data-testid="stFileUploader"],
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div,
+textarea,input { border-radius:12px !important; }
+.glass-card {
+    background:rgba(255,255,255,.70);
+    border:1px solid rgba(255,255,255,.95);
+    border-radius:20px;
+    padding:22px;
+    margin:8px 0 18px;
+    box-shadow:0 15px 40px rgba(15,23,42,.08);
+    backdrop-filter:blur(18px);
+}
+.hero {
+    padding:28px 30px;
+    border-radius:24px;
+    background:linear-gradient(120deg,rgba(255,255,255,.82),rgba(241,245,249,.70));
+    border:1px solid rgba(255,255,255,.95);
+    box-shadow:0 18px 50px rgba(15,23,42,.08);
+    margin-bottom:18px;
+}
+.hero-kicker { color:#059669; font-weight:800; letter-spacing:1.5px; font-size:13px; }
+.hero-title { color:#0f172a; font-size:34px; font-weight:900; margin:3px 0; }
+.hero-sub { color:#64748b; font-size:15px; }
+.pill {
+    display:inline-block;
+    padding:6px 11px;
+    border-radius:999px;
+    background:rgba(16,185,129,.10);
+    border:1px solid rgba(16,185,129,.20);
+    color:#047857;
+    font-size:12px;
+    font-weight:700;
+    margin:4px 5px 0 0;
+}
+.section-title { font-size:18px; font-weight:800; color:#0f172a; margin:12px 0; }
+.result-card {
+    border-radius:18px;
+    padding:18px;
+    border:1px solid rgba(148,163,184,.18);
+    background:rgba(255,255,255,.72);
+}
+.result-color { border-color:rgba(16,185,129,.30); }
+.result-bw { border-color:rgba(59,130,246,.22); }
+.page-list {
+    max-height:180px;
+    overflow:auto;
+    padding:12px;
+    border-radius:12px;
+    background:rgba(241,245,249,.75);
+    font-family:monospace;
+    font-size:12px;
+    color:#334155;
+}
+button[title="Toggle Theme"] {
+    position:fixed !important;
+    right:28px !important;
+    bottom:28px !important;
+    z-index:999999 !important;
+    width:58px !important;
+    height:58px !important;
+    border-radius:50% !important;
+    padding:0 !important;
+    background:rgba(255,255,255,.95) !important;
+    color:#0f172a !important;
+    border:1px solid rgba(255,255,255,1) !important;
+    box-shadow:0 10px 30px rgba(15,23,42,.15) !important;
+}
+.footer { text-align:center; color:#94a3b8; padding:18px 0 5px; font-size:12px; }
 </style>
 """
 
-# --- RENDER TEMA & TOMBOL FLOATING ---
 if st.session_state.theme_mode == "dark":
     st.markdown(CSS_DARK_MODE, unsafe_allow_html=True)
-    ikon_tema = "☀️" 
+    theme_icon = "☀️"
 else:
     st.markdown(CSS_LIGHT_MODE, unsafe_allow_html=True)
-    ikon_tema = "🌙"
+    theme_icon = "🌙"
 
-st.button(ikon_tema, on_click=toggle_theme, help="Toggle Theme")
+st.button(theme_icon, on_click=toggle_theme, help="Ganti tema")
 
-# --- HEADER LAYOUT UTAMA ---
-st.title("🖨️ Litnus Printing - PDF Splitter & Cost Calculator")
-st.write("Aplikasi produksi otomatis untuk memisahkan halaman Warna & BW berdasarkan Ukuran Buku dan Jenis Kertas beserta cetak struk dinamis.")
 
-# --- DATABASE RUMUS HARGA ---
+# ============================================================
+# PRICING MATRIX
+# ============================================================
+
 PRICING_MATRIX = {
     "A5 (14.8 x 21 cm)": {
         "base_finishing_soft": 25000,
         "HVS 70": {"warna": 500, "bw": 150},
-        "BP 57": {"warna": 550, "bw": 180}
+        "BP 57": {"warna": 550, "bw": 180},
     },
     "Unesco (15.5 x 23 cm)": {
         "base_finishing_soft": 27000,
         "HVS 70": {"warna": 600, "bw": 160},
-        "BP 57": {"warna": 650, "bw": 200}
+        "BP 57": {"warna": 650, "bw": 200},
     },
     "B5 ISO (17.6 x 25 cm)": {
         "base_finishing_soft": 30000,
         "HVS 70": {"warna": 800, "bw": 180},
-        "BP 57": {"warna": 850, "bw": 210}
+        "BP 57": {"warna": 850, "bw": 210},
     },
     "B5 JIS (18.2 x 25.7 cm)": {
         "base_finishing_soft": 31000,
         "HVS 70": {"warna": 900, "bw": 190},
-        "BP 57": {"warna": 950, "bw": 220}
+        "BP 57": {"warna": 950, "bw": 220},
     },
     "A4 (21 x 29.7 cm)": {
         "base_finishing_soft": 31000,
         "HVS 70": {"warna": 1000, "bw": 200},
-        "BP 57": {"warna": 1100, "bw": 250}
-    }
+        "BP 57": {"warna": 1100, "bw": 250},
+    },
 }
 
-# --- SIDEBAR: PENGATURAN PRODUKSI ---
-st.sidebar.header("📦 Spesifikasi Buku & Cetak")
-ukuran_buku = st.sidebar.selectbox("Ukuran Buku", list(PRICING_MATRIX.keys()))
-jenis_kertas = st.sidebar.selectbox("Jenis Kertas Isi", ["HVS 70", "BP 57"])
-mode_cetak = st.sidebar.selectbox("Mode Cetak", ["Duplex (Bolak-balik)", "Simplex (Satu Sisi)"])
-jenis_jilid = st.sidebar.selectbox("Jenis Jilid", ["Soft Cover", "Hard Cover"])
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def format_rupiah(value):
+    return f"Rp {int(value):,}".replace(",", ".")
+
+
+def parse_page_input(text, total_pages):
+    """
+    Mendukung:
+    3,7,12
+    3-8,15,20-25
+    3, 7-9, 12
+    """
+    if not text or not text.strip():
+        return [], []
+
+    cleaned = text.replace(" ", "")
+    tokens = [x for x in cleaned.split(",") if x]
+    pages = set()
+    errors = []
+
+    for token in tokens:
+        if re.fullmatch(r"\d+", token):
+            p = int(token)
+            if 1 <= p <= total_pages:
+                pages.add(p)
+            else:
+                errors.append(f"{token} di luar rentang 1-{total_pages}")
+        elif re.fullmatch(r"\d+-\d+", token):
+            a, b = map(int, token.split("-"))
+            if a > b:
+                a, b = b, a
+            if b < 1 or a > total_pages:
+                errors.append(f"{token} di luar rentang 1-{total_pages}")
+                continue
+            start = max(1, a)
+            end = min(total_pages, b)
+            pages.update(range(start, end + 1))
+        else:
+            errors.append(f"Format tidak dikenali: {token}")
+
+    return sorted(pages), errors
+
+
+def add_duplex_pairs(selected_pages, total_pages):
+    result = set(selected_pages)
+    for page in selected_pages:
+        if page % 2 == 1:
+            pair = page + 1
+        else:
+            pair = page - 1
+        if 1 <= pair <= total_pages:
+            result.add(pair)
+    return sorted(result)
+
+
+@st.cache_data(show_spinner="Menganalisis dan memisahkan PDF...")
+def split_pdf_by_pages(file_bytes, selected_pages, total_pages):
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
+    selected_set = set(selected_pages)
+
+    doc_selected = fitz.open()
+    doc_remaining = fitz.open()
+
+    for page_num in range(total_pages):
+        actual_page = page_num + 1
+        if actual_page in selected_set:
+            doc_selected.insert_pdf(
+                doc, from_page=page_num, to_page=page_num
+            )
+        else:
+            doc_remaining.insert_pdf(
+                doc, from_page=page_num, to_page=page_num
+            )
+
+    pdf_selected = doc_selected.write() if len(doc_selected) else None
+    pdf_remaining = doc_remaining.write() if len(doc_remaining) else None
+
+    doc_selected.close()
+    doc_remaining.close()
+    doc.close()
+
+    remaining_pages = [
+        p for p in range(1, total_pages + 1) if p not in selected_set
+    ]
+
+    return (
+        selected_pages,
+        remaining_pages,
+        pdf_selected,
+        pdf_remaining,
+    )
+
+
+@st.cache_data(show_spinner="Menganalisis warna dan memisahkan PDF...")
+def process_and_split_pdf(
+    file_bytes, force_bw, sens, min_pct, mode, total_p
+):
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
+    pure_color_pages = []
+
+    if not force_bw:
+        for page_num in range(total_p):
+            page = doc[page_num]
+            pix = page.get_pixmap(dpi=72, colorspace=fitz.csRGB)
+            samples = pix.samples
+            n = pix.n
+
+            total_pixels = pix.width * pix.height
+            color_pixel_count = 0
+
+            # Sampling setiap 2 pixel untuk menjaga performa.
+            # Karena yang dihitung hanya sample, denominator juga
+            # disesuaikan dengan jumlah sample.
+            step = n * 2
+            sample_count = 0
+
+            for i in range(0, len(samples) - n + 1, step):
+                r = samples[i]
+                g = samples[i + 1]
+                b = samples[i + 2]
+                sample_count += 1
+
+                if (
+                    abs(r - g) > sens
+                    or abs(r - b) > sens
+                    or abs(g - b) > sens
+                ):
+                    color_pixel_count += 1
+
+            if sample_count:
+                color_ratio = (color_pixel_count / sample_count) * 100
+            else:
+                color_ratio = 0
+
+            if color_ratio >= min_pct:
+                pure_color_pages.append(page_num + 1)
+
+    final_color_set = set(pure_color_pages)
+
+    if mode == "Duplex (Bolak-balik)" and not force_bw:
+        final_color_set = set(
+            add_duplex_pairs(sorted(final_color_set), total_p)
+        )
+
+    final_color_list = sorted(final_color_set)
+    final_bw_list = [
+        p for p in range(1, total_p + 1)
+        if p not in final_color_set
+    ]
+
+    doc_warna = fitz.open()
+    doc_bw = fitz.open()
+
+    for page_num in range(total_p):
+        actual_page = page_num + 1
+        if actual_page in final_color_set:
+            doc_warna.insert_pdf(
+                doc, from_page=page_num, to_page=page_num
+            )
+        else:
+            doc_bw.insert_pdf(
+                doc, from_page=page_num, to_page=page_num
+            )
+
+    pdf_warna_bytes = doc_warna.write() if len(doc_warna) else None
+    pdf_bw_bytes = doc_bw.write() if len(doc_bw) else None
+
+    doc_warna.close()
+    doc_bw.close()
+    doc.close()
+
+    return (
+        final_color_list,
+        final_bw_list,
+        pdf_warna_bytes,
+        pdf_bw_bytes,
+        pure_color_pages,
+    )
+
+
+def format_page_list(pages, max_chars=900):
+    if not pages:
+        return "—"
+
+    text = ", ".join(map(str, pages))
+    if len(text) <= max_chars:
+        return text
+
+    return text[:max_chars] + " ..."
+
+
+# ============================================================
+# HERO
+# ============================================================
+
+st.markdown(
+    """
+<div class="hero">
+    <div class="hero-kicker">LITNUS PRINTING • PRODUCTION TOOL</div>
+    <div class="hero-title">🖨️ PDF Splitter & Cost Calculator</div>
+    <div class="hero-sub">
+        Analisis halaman, pemisahan PDF, kalkulasi biaya produksi,
+        diskon oplos, finishing, dan struk transaksi dalam satu aplikasi.
+    </div>
+    <div style="margin-top:12px;">
+        <span class="pill">PDF SPLITTER</span>
+        <span class="pill">MANUAL PAGE SELECTOR</span>
+        <span class="pill">AUTO COLOR DETECTION</span>
+        <span class="pill">COST CALCULATOR</span>
+        <span class="pill">DUPLEX AWARE</span>
+    </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# SIDEBAR PRODUCTION SETTINGS
+# ============================================================
+
+st.sidebar.header("📦 Spesifikasi Produksi")
+
+ukuran_buku = st.sidebar.selectbox(
+    "Ukuran Buku",
+    list(PRICING_MATRIX.keys()),
+)
+
+jenis_kertas = st.sidebar.selectbox(
+    "Jenis Kertas Isi",
+    ["HVS 70", "BP 57"],
+)
+
+mode_cetak = st.sidebar.selectbox(
+    "Mode Cetak",
+    ["Duplex (Bolak-balik)", "Simplex (Satu Sisi)"],
+)
+
+jenis_jilid = st.sidebar.selectbox(
+    "Jenis Jilid",
+    ["Soft Cover", "Hard Cover"],
+)
 
 st.sidebar.markdown("---")
 st.sidebar.header("🔢 Volume Oplos")
-jumlah_cetak = st.sidebar.number_input("Jumlah Cetak (Eksemplar/Buku)", min_value=1, value=1, step=1)
+
+jumlah_cetak = st.sidebar.number_input(
+    "Jumlah Cetak (Eksemplar/Buku)",
+    min_value=1,
+    value=1,
+    step=1,
+)
 
 base_warna = PRICING_MATRIX[ukuran_buku][jenis_kertas]["warna"]
 base_bw = PRICING_MATRIX[ukuran_buku][jenis_kertas]["bw"]
@@ -251,353 +591,833 @@ else:
     rate_bw = base_bw
 
 base_soft = PRICING_MATRIX[ukuran_buku]["base_finishing_soft"]
+
 if jenis_jilid == "Hard Cover":
     rate_finishing_base = int(base_soft * 1.5)
 else:
     rate_finishing_base = base_soft
 
-# --- FUNGSI PROSES PDF DENGAN CACHE ---
-@st.cache_data(show_spinner="Memproses pemisahan halaman PDF...")
-def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
-    doc = fitz.open(stream=file_bytes, filetype="pdf")
-    pure_color_pages = []
-    
-    if not force_bw:
-        for page_num in range(total_p):
-            page = doc[page_num]
-            pix = page.get_pixmap(dpi=72)
-            samples = pix.samples
-            n = pix.n
-            
-            total_pixels = pix.width * pix.height
-            color_pixel_count = 0
-            
-            if n == 3:  # RGB
-                for i in range(0, len(samples), n * 2): 
-                    r = samples[i]
-                    g = samples[i+1]
-                    b = samples[i+2]
-                    if abs(r - g) > sens or abs(r - b) > sens or abs(g - b) > sens:
-                        color_pixel_count += 1
-                        
-            elif n == 4:  # CMYK
-                for i in range(0, len(samples), n * 2):
-                    c = samples[i]
-                    m = samples[i+1]
-                    y = samples[i+2]
-                    if c > sens or m > sens or y > sens:
-                        color_pixel_count += 1
-            
-            color_ratio = (color_pixel_count / total_pixels) * 100
-            if color_ratio >= min_pct:
-                pure_color_pages.append(page_num + 1)
-    
-    final_color_set = set(pure_color_pages)
-    if mode == "Duplex (Bolak-balik)" and not force_bw:
-        for page in pure_color_pages:
-            if page % 2 != 0: 
-                sebaliknya = page + 1
-                if sebaliknya <= total_p:
-                    final_color_set.add(sebaliknya)
-            else: 
-                sebaliknya = page - 1
-                if sebaliknya >= 1:
-                    final_color_set.add(sebaliknya)
-                    
-    final_color_list = sorted(list(final_color_set))
-    final_bw_list = [p for p in range(1, total_p + 1) if p not in final_color_list]
-    
-    doc_warna = fitz.open()
-    doc_bw = fitz.open()
-    
-    for page_num in range(total_p):
-        actual_page = page_num + 1
-        if actual_page in final_color_list:
-            doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
-        else:
-            doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
-            
-    # VALIDASI PENANGANAN DOKUMEN KOSONG (mencegah ValueError)
-    pdf_warna_bytes = doc_warna.write() if len(doc_warna) > 0 else None
-    pdf_bw_bytes = doc_bw.write() if len(doc_bw) > 0 else None
-    
-    doc_warna.close()
-    doc_bw.close()
-    doc.close()
-    
-    return final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes
 
-# --- PILIHAN MODE INPUT ---
-st.subheader("🛠️ Pilih Metode Input Data")
-mode_input = st.radio("Metode Analisis:", ["Otomatis (Upload PDF & Split File)", "Manual (Input Jumlah Halaman Saja)"], horizontal=True)
+# ============================================================
+# INPUT MODE
+# ============================================================
+
+st.subheader("🛠️ Pilih Metode Analisis")
+
+mode_input = st.radio(
+    "Metode Analisis",
+    [
+        "Otomatis — Analisis Warna PDF",
+        "Manual — Pilih Halaman & Split PDF",
+        "Manual — Input Jumlah Halaman Saja",
+    ],
+    horizontal=True,
+)
 
 total_pages = 0
 count_warna = 0
 count_bw = 0
 nama_file_asli = "Order_Manual_Litnus"
+
 final_color_list = []
 final_bw_list = []
 pdf_warna_bytes = None
 pdf_bw_bytes = None
 ready_to_calculate = False
 
-if mode_input == "Otomatis (Upload PDF & Split File)":
+input_bytes = None
+
+
+# ============================================================
+# MODE 1 — AUTOMATIC COLOR ANALYSIS
+# ============================================================
+
+if mode_input == "Otomatis — Analisis Warna PDF":
+
     st.sidebar.markdown("---")
-    st.sidebar.header("🚨 Mode Darurat & Parameter")
-    force_bw_all = st.sidebar.checkbox("Paksa SEMUA Halaman Menjadi BW", value=False)
-    sensitivitas = st.sidebar.slider("Batas Kontras Warna", min_value=5, max_value=50, value=25, step=5)
-    min_color_percentage = st.sidebar.slider("Batas Minimum Area Warna (%)", min_value=0.01, max_value=5.00, value=0.10, step=0.05)
-    
-    uploaded_file = st.file_uploader("Unggah File PDF Buku", type=["pdf"])
-    
+    st.sidebar.header("🎨 Parameter Deteksi Warna")
+
+    force_bw_all = st.sidebar.checkbox(
+        "Paksa SEMUA Halaman Menjadi BW",
+        value=False,
+    )
+
+    sensitivitas = st.sidebar.slider(
+        "Batas Kontras Warna",
+        min_value=5,
+        max_value=50,
+        value=25,
+        step=5,
+    )
+
+    min_color_percentage = st.sidebar.slider(
+        "Batas Minimum Area Warna (%)",
+        min_value=0.01,
+        max_value=5.00,
+        value=0.10,
+        step=0.05,
+    )
+
+    uploaded_file = st.file_uploader(
+        "Unggah File PDF Buku",
+        type=["pdf"],
+        key="auto_pdf",
+    )
+
     if uploaded_file is not None:
         nama_file_asli = os.path.splitext(uploaded_file.name)[0]
-        input_bytes = uploaded_file.read()
-        
+        input_bytes = uploaded_file.getvalue()
+
         temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
         total_pages = len(temp_doc)
         temp_doc.close()
-        
-        st.info(f"📄 File berhasil dimuat: {uploaded_file.name} | Total: {total_pages} Halaman")
-        
-        final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes = process_and_split_pdf(
-            input_bytes, force_bw_all, sensitivitas, min_color_percentage, mode_cetak, total_pages
+
+        st.info(
+            f"📄 {uploaded_file.name} • "
+            f"{total_pages} halaman"
         )
+
+        (
+            final_color_list,
+            final_bw_list,
+            pdf_warna_bytes,
+            pdf_bw_bytes,
+            raw_color_pages,
+        ) = process_and_split_pdf(
+            input_bytes,
+            force_bw_all,
+            sensitivitas,
+            min_color_percentage,
+            mode_cetak,
+            total_pages,
+        )
+
         count_warna = len(final_color_list)
         count_bw = len(final_bw_list)
-        ready_to_calculate = True
+        ready_to_calculate = total_pages > 0
+
+        if mode_cetak == "Duplex (Bolak-balik)" and raw_color_pages:
+            if set(raw_color_pages) != set(final_color_list):
+                st.success(
+                    "🔄 Duplex aktif: halaman pasangan otomatis "
+                    "ikut dimasukkan ke hasil warna."
+                )
+
+
+# ============================================================
+# MODE 2 — MANUAL PAGE SELECTOR
+# ============================================================
+
+elif mode_input == "Manual — Pilih Halaman & Split PDF":
+
+    st.sidebar.markdown("---")
+    st.sidebar.header("🎯 Manual Page Selector")
+
+    auto_pair = st.sidebar.checkbox(
+        "Cari halaman sebaliknya otomatis",
+        value=True,
+        disabled=(mode_cetak != "Duplex (Bolak-balik)"),
+        help=(
+            "Jika halaman 7 dipilih, halaman 8 akan ikut. "
+            "Jika halaman 8 dipilih, halaman 7 akan ikut."
+        ),
+    )
+
+    uploaded_file = st.file_uploader(
+        "Unggah File PDF Buku",
+        type=["pdf"],
+        key="manual_pdf",
+    )
+
+    if uploaded_file is not None:
+        nama_file_asli = os.path.splitext(uploaded_file.name)[0]
+        input_bytes = uploaded_file.getvalue()
+
+        temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
+        total_pages = len(temp_doc)
+        temp_doc.close()
+
+        st.info(
+            f"📄 {uploaded_file.name} • "
+            f"{total_pages} halaman tersedia"
+        )
+
+        st.markdown(
+            '<div class="glass-card">'
+            '<div class="section-title">🎯 Tentukan Halaman yang Ingin Dipisahkan</div>'
+            '<div style="color:#8fa3b8;font-size:13px;">'
+            'Masukkan nomor halaman seperti '
+            '<b>3,7,12,25</b> atau gunakan rentang '
+            '<b>3-8,15,20-25</b>.'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+
+        page_input = st.text_area(
+            "Nomor halaman",
+            placeholder="Contoh: 3, 7, 12-15, 25",
+            height=90,
+            key="manual_page_input",
+        )
+
+        selected_input_pages, parse_errors = parse_page_input(
+            page_input,
+            total_pages,
+        )
+
+        if parse_errors:
+            st.warning(
+                "⚠️ " + " • ".join(parse_errors)
+            )
+
+        if selected_input_pages:
+            final_color_list = (
+                add_duplex_pairs(
+                    selected_input_pages,
+                    total_pages,
+                )
+                if auto_pair
+                else selected_input_pages
+            )
+
+            final_bw_list = [
+                p for p in range(1, total_pages + 1)
+                if p not in set(final_color_list)
+            ]
+
+            count_warna = len(final_color_list)
+            count_bw = len(final_bw_list)
+
+            # Informasi pasangan yang ditambahkan
+            added_pairs = sorted(
+                set(final_color_list) - set(selected_input_pages)
+            )
+
+            col_a, col_b, col_c = st.columns(3)
+            col_a.metric(
+                "Halaman Input",
+                f"{len(selected_input_pages)} hlm",
+            )
+            col_b.metric(
+                "Halaman Terpilih",
+                f"{count_warna} hlm",
+            )
+            col_c.metric(
+                "Halaman Sisa",
+                f"{count_bw} hlm",
+            )
+
+            if auto_pair and added_pairs:
+                st.success(
+                    "🔄 Halaman sebaliknya ditambahkan otomatis: "
+                    + format_page_list(added_pairs)
+                )
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+                st.markdown(
+                    f"""
+                    <div class="result-card result-color">
+                        <div class="section-title">
+                            🎨 PDF HALAMAN TERPILIH
+                        </div>
+                        <div class="page-list">
+                            {format_page_list(final_color_list, 1800)}
+                        </div>
+                        <div style="margin-top:10px;color:#10b981;font-weight:800;">
+                            {count_warna} halaman
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            with c2:
+                st.markdown(
+                    f"""
+                    <div class="result-card result-bw">
+                        <div class="section-title">
+                            ⚫ PDF HALAMAN SISANYA
+                        </div>
+                        <div class="page-list">
+                            {format_page_list(final_bw_list, 1800)}
+                        </div>
+                        <div style="margin-top:10px;color:#60a5fa;font-weight:800;">
+                            {count_bw} halaman
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            if st.button(
+                "⚡ Proses & Pisahkan PDF",
+                use_container_width=True,
+                key="manual_split_button",
+            ):
+                (
+                    final_color_list,
+                    final_bw_list,
+                    pdf_warna_bytes,
+                    pdf_bw_bytes,
+                ) = split_pdf_by_pages(
+                    input_bytes,
+                    tuple(final_color_list),
+                    total_pages,
+                )
+
+                st.session_state.manual_result = {
+                    "final_color_list": final_color_list,
+                    "final_bw_list": final_bw_list,
+                    "pdf_warna_bytes": pdf_warna_bytes,
+                    "pdf_bw_bytes": pdf_bw_bytes,
+                    "nama_file": nama_file_asli,
+                }
+
+            # Ambil hasil dari session jika tombol sudah ditekan
+            if "manual_result" in st.session_state:
+                result = st.session_state.manual_result
+                if result["nama_file"] == nama_file_asli:
+                    final_color_list = result["final_color_list"]
+                    final_bw_list = result["final_bw_list"]
+                    pdf_warna_bytes = result["pdf_warna_bytes"]
+                    pdf_bw_bytes = result["pdf_bw_bytes"]
+
+            ready_to_calculate = True
+
+
+# ============================================================
+# MODE 3 — MANUAL COUNT ONLY
+# ============================================================
 
 else:
-    st.info("💡 Mode Manual Aktif: Masukkan jumlah halaman secara langsung di bawah.")
-    nama_file_asli = st.text_input("Nama File / Judul Buku", value="Buku_Titipan_Customer")
-    
+
+    st.info(
+        "💡 Mode manual sederhana: masukkan jumlah halaman "
+        "Warna dan BW tanpa mengunggah PDF."
+    )
+
+    nama_file_asli = st.text_input(
+        "Nama File / Judul Buku",
+        value="Buku_Titipan_Customer",
+    )
+
     col_in1, col_in2 = st.columns(2)
+
     with col_in1:
-        count_warna = int(st.number_input("Jumlah Halaman WARNA", min_value=0, value=0, step=1))
+        count_warna = int(
+            st.number_input(
+                "Jumlah Halaman WARNA",
+                min_value=0,
+                value=0,
+                step=1,
+            )
+        )
+
     with col_in2:
-        count_bw = int(st.number_input("Jumlah Halaman HITAM PUTIH (BW)", min_value=0, value=0, step=1))
-        
+        count_bw = int(
+            st.number_input(
+                "Jumlah Halaman HITAM PUTIH (BW)",
+                min_value=0,
+                value=0,
+                step=1,
+            )
+        )
+
     total_pages = count_warna + count_bw
     ready_to_calculate = total_pages > 0
 
-# --- BLOK PROSES KALKULASI UTAMA ---
+
+# ============================================================
+# CALCULATION ENGINE
+# ============================================================
+
 if ready_to_calculate:
+
     tz_wib = timezone(timedelta(hours=7))
     waktu_sekarang = datetime.now(tz_wib)
-    str_tanggal = waktu_sekarang.strftime("%d/%m/%Y %H:%M:%S WIB")
-    str_trx = waktu_sekarang.strftime("TRX/%Y%m%d%H%M%S")
-    
+
+    str_tanggal = waktu_sekarang.strftime(
+        "%d/%m/%Y %H:%M:%S WIB"
+    )
+
+    str_trx = waktu_sekarang.strftime(
+        "TRX/%Y%m%d%H%M%S"
+    )
+
+    # --------------------------------------------------------
+    # DISCOUNT PRINTING
+    # --------------------------------------------------------
+
     diskon_isi_persen = 0
     tiers = [4, 10, 20, 30, 50, 100, 200, 500, 1000]
+
     for idx, tier in enumerate(tiers):
         if jumlah_cetak >= tier:
             diskon_isi_persen = (idx + 1) * 4
-            
-    if diskon_isi_persen > 32:
-        diskon_isi_persen = 32
-        
-    rate_warna_akhir = int(rate_warna * (1 - diskon_isi_persen / 100))
-    rate_bw_akhir = int(rate_bw * (1 - diskon_isi_persen / 100))
-    
+
+    diskon_isi_persen = min(diskon_isi_persen, 32)
+
+    rate_warna_akhir = int(
+        rate_warna * (1 - diskon_isi_persen / 100)
+    )
+
+    rate_bw_akhir = int(
+        rate_bw * (1 - diskon_isi_persen / 100)
+    )
+
+    # --------------------------------------------------------
+    # COST CONTENT
+    # --------------------------------------------------------
+
     cost_warna_per_buku = count_warna * rate_warna_akhir
     cost_bw_per_buku = count_bw * rate_bw_akhir
-    total_isi_per_buku = cost_warna_per_buku + cost_bw_per_buku
-    
-    calc_oplos_finishing = min(jumlah_cetak, 200)
-    persen_diskon_finishing = (calc_oplos_finishing // 5) * 2
-    if persen_diskon_finishing > 40:
-        persen_diskon_finishing = 40
-        
-    nilai_diskon_finishing_per_buku = int(rate_finishing_base * (persen_diskon_finishing / 100))
-    rate_finishing_akhir = rate_finishing_base - nilai_diskon_finishing_per_buku
-    
-    total_harga_per_eks = total_isi_per_buku + rate_finishing_akhir
-    total_isi_all = total_isi_per_buku * jumlah_cetak
-    total_finishing_all = rate_finishing_akhir * jumlah_cetak
-    grand_total = total_harga_per_eks * jumlah_cetak
-    nominal_dp = int(grand_total * 0.5)
-    
-    cost_full_warna_all = (total_pages * base_warna * jumlah_cetak) + (rate_finishing_base * jumlah_cetak)
-    hemat = cost_full_warna_all - grand_total
-    
+
+    total_isi_per_buku = (
+        cost_warna_per_buku + cost_bw_per_buku
+    )
+
+    # --------------------------------------------------------
+    # FINISHING DISCOUNT
+    # --------------------------------------------------------
+
+    calc_oplos_finishing = min(
+        jumlah_cetak,
+        200,
+    )
+
+    persen_diskon_finishing = (
+        calc_oplos_finishing // 5
+    ) * 2
+
+    persen_diskon_finishing = min(
+        persen_diskon_finishing,
+        40,
+    )
+
+    nilai_diskon_finishing_per_buku = int(
+        rate_finishing_base
+        * (persen_diskon_finishing / 100)
+    )
+
+    rate_finishing_akhir = (
+        rate_finishing_base
+        - nilai_diskon_finishing_per_buku
+    )
+
+    # --------------------------------------------------------
+    # TOTAL
+    # --------------------------------------------------------
+
+    total_harga_per_eks = (
+        total_isi_per_buku
+        + rate_finishing_akhir
+    )
+
+    total_isi_all = (
+        total_isi_per_buku
+        * jumlah_cetak
+    )
+
+    total_finishing_all = (
+        rate_finishing_akhir
+        * jumlah_cetak
+    )
+
+    grand_total = (
+        total_harga_per_eks
+        * jumlah_cetak
+    )
+
+    nominal_dp = int(
+        grand_total * 0.5
+    )
+
+    # --------------------------------------------------------
+    # FULL COLOR COMPARISON
+    # --------------------------------------------------------
+
+    cost_full_warna_all = (
+        total_pages
+        * base_warna
+        * jumlah_cetak
+    ) + (
+        rate_finishing_base
+        * jumlah_cetak
+    )
+
+    hemat = (
+        cost_full_warna_all
+        - grand_total
+    )
+
+    # ========================================================
+    # METRICS
+    # ========================================================
+
     st.markdown("---")
-    st.subheader("📊 Analisis Halaman & Kalkulator Selisih Profit")
-    
-    # KONDISI PENAYANGAN METRIK: EFISIENSI OPLOS HANYA DITAMPILKAN JIKA WARNA > 0
+    st.subheader("📊 Analisis Produksi")
+
     if count_warna > 0:
         c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("Total Halaman Warna", f"{count_warna} hlm")
-        c2.metric("Total Halaman BW", f"{count_bw} hlm")
-        c3.metric("TOTAL HARGA/EKS", f"Rp {total_harga_per_eks:,}")
-        c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
-        c5.metric("Full Colour", f"Rp {cost_full_warna_all:,}")
-        c6.metric("Efisiensi Oplos", f"Rp {hemat:,}", delta="Hemat")
+
+        c1.metric(
+            "🎨 Halaman Terpilih",
+            f"{count_warna} hlm",
+        )
+
+        c2.metric(
+            "⚫ Halaman Sisa",
+            f"{count_bw} hlm",
+        )
+
+        c3.metric(
+            "💰 Harga / Eks",
+            format_rupiah(total_harga_per_eks),
+        )
+
+        c4.metric(
+            "📦 Grand Total",
+            format_rupiah(grand_total),
+        )
+
+        c5.metric(
+            "🌈 Full Colour",
+            format_rupiah(cost_full_warna_all),
+        )
+
+        c6.metric(
+            "💚 Efisiensi",
+            format_rupiah(hemat),
+            delta="Hemat",
+        )
+
     else:
         c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Total Halaman Warna", f"{count_warna} hlm")
-        c2.metric("Total Halaman BW", f"{count_bw} hlm")
-        c3.metric("TOTAL HARGA/EKS", f"Rp {total_harga_per_eks:,}")
-        c4.metric("GRAND TOTAL (Oplos)", f"Rp {grand_total:,}")
-        c5.metric("Full Colour", f"Rp {cost_full_warna_all:,}")
+
+        c1.metric(
+            "🎨 Halaman Terpilih",
+            f"{count_warna} hlm",
+        )
+
+        c2.metric(
+            "⚫ Halaman BW",
+            f"{count_bw} hlm",
+        )
+
+        c3.metric(
+            "💰 Harga / Eks",
+            format_rupiah(total_harga_per_eks),
+        )
+
+        c4.metric(
+            "📦 Grand Total",
+            format_rupiah(grand_total),
+        )
+
+        c5.metric(
+            "🌈 Full Colour",
+            format_rupiah(cost_full_warna_all),
+        )
+
+    # ========================================================
+    # COST SUMMARY
+    # ========================================================
 
     st.markdown("### 💰 Ringkasan Biaya Produksi")
-    
+
     table_html = f"""
-    <table style="width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 15px; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
+    <div class="glass-card">
+    <table style="width:100%;border-collapse:collapse;">
         <thead>
-            <tr style="background: linear-gradient(135deg, #f09433 0%, #e6683c 30%, #dc2743 60%, #bc1888 100%);">
-                <th style="padding: 12px 16px; text-align: left; font-weight: 700; font-size: 16px; color: #fde047 !important;">Spesifikasi Buku & Komponen</th>
-                <th style="padding: 12px 16px; text-align: left; font-weight: 700; font-size: 16px; color: #fde047 !important;">Detail Perhitungan</th>
+            <tr>
+                <th style="padding:12px;text-align:left;">Komponen</th>
+                <th style="padding:12px;text-align:left;">Detail</th>
+                <th style="padding:12px;text-align:right;">Total</th>
             </tr>
         </thead>
-        <tbody style="background: {'rgba(30, 41, 59, 0.5)' if st.session_state.theme_mode == 'dark' else 'rgba(255, 255, 255, 0.8)'};">
+        <tbody>
             <tr>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Ukuran & Bahan Kertas Isi</td>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{ukuran_buku} | Kertas {jenis_kertas} ({mode_cetak})</td>
+                <td style="padding:11px;">Ukuran & Kertas</td>
+                <td style="padding:11px;">{ukuran_buku} • {jenis_kertas} • {mode_cetak}</td>
+                <td style="padding:11px;text-align:right;">—</td>
             </tr>
             <tr>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Jilid Cover Buku</td>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">{jenis_jilid}</td>
+                <td style="padding:11px;">Jilid</td>
+                <td style="padding:11px;">{jenis_jilid}</td>
+                <td style="padding:11px;text-align:right;">{format_rupiah(rate_finishing_akhir)} / eks</td>
             </tr>
             <tr>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Cetak Isi (Warna & BW) x {jumlah_cetak} Eks</td>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_isi_all:,} (Diskon Isi {diskon_isi_persen}%)</td>
+                <td style="padding:11px;">Cetak Isi × {jumlah_cetak} Eks</td>
+                <td style="padding:11px;">Warna {count_warna} hlm + BW {count_bw} hlm • Diskon isi {diskon_isi_persen}%</td>
+                <td style="padding:11px;text-align:right;">{format_rupiah(total_isi_all)}</td>
             </tr>
             <tr>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1);">Finishing Jilid x {jumlah_cetak} Eks</td>
-                <td style="padding: 10px 16px; border-bottom: 1px solid rgba(128,128,128,0.1); font-weight: 500;">Rp {total_finishing_all:,} (Diskon Finishing {persen_diskon_finishing}%)</td>
+                <td style="padding:11px;">Finishing × {jumlah_cetak} Eks</td>
+                <td style="padding:11px;">Diskon finishing {persen_diskon_finishing}%</td>
+                <td style="padding:11px;text-align:right;">{format_rupiah(total_finishing_all)}</td>
             </tr>
-            <tr style="background: rgba(16, 185, 129, 0.15);">
-                <td style="padding: 12px 16px; font-weight: 700; color: #10b981;">PILIHAN 1: GRAND TOTAL (Lunas)</td>
-                <td style="padding: 12px 16px; font-weight: 700; color: #10b981;">Rp {grand_total:,}</td>
+            <tr style="background:rgba(16,185,129,.12);">
+                <td style="padding:13px;font-weight:800;">GRAND TOTAL</td>
+                <td style="padding:13px;font-weight:800;">{jumlah_cetak} eksemplar</td>
+                <td style="padding:13px;text-align:right;font-weight:900;color:#10b981;">{format_rupiah(grand_total)}</td>
             </tr>
             <tr>
-                <td style="padding: 12px 16px; font-weight: 600;">PILIHAN 2: NOMINAL UANG MUKA (DP 50%)</td>
-                <td style="padding: 12px 16px; font-weight: 600;">Rp {nominal_dp:,}</td>
+                <td style="padding:13px;font-weight:700;">DP 50%</td>
+                <td style="padding:13px;">Minimum pembayaran awal</td>
+                <td style="padding:13px;text-align:right;font-weight:800;">{format_rupiah(nominal_dp)}</td>
             </tr>
         </tbody>
     </table>
+    </div>
     """
-    st.markdown(table_html, unsafe_allow_html=True)
-    
-    if mode_input == "Otomatis (Upload PDF & Split File)":
-        with st.expander("👁️ Lihat Rincian Nomor Halaman"):
-            st.write(f"🎨 **Halaman Warna ({count_warna} hlm):** {final_color_list}")
-            st.write(f"⚫ **Halaman BW ({count_bw} hlm):** {final_bw_list}")
-            
-    def format_halaman_list(lst):
-        if not lst: return "[]"
-        lines = []
-        for i in range(0, len(lst), 15):
-            lines.append(", ".join(map(str, lst[i:i+15])))
-        return "[\n    " + ",\n    ".join(lines) + "\n   ]"
 
-    struk_text = f"""======================================================================
-                    LITNUS PRINTING
-                    Struk Pembayaran
+    st.markdown(
+        table_html,
+        unsafe_allow_html=True,
+    )
+
+    # ========================================================
+    # PAGE DETAIL
+    # ========================================================
+
+    if mode_input != "Manual — Input Jumlah Halaman Saja":
+
+        with st.expander("👁️ Lihat Rincian Nomor Halaman"):
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("**🎨 Halaman Terpilih**")
+                st.code(
+                    format_page_list(
+                        final_color_list,
+                        4000,
+                    ),
+                    language="text",
+                )
+
+            with col2:
+                st.markdown("**⚫ Halaman Sisa**")
+                st.code(
+                    format_page_list(
+                        final_bw_list,
+                        4000,
+                    ),
+                    language="text",
+                )
+
+    # ========================================================
+    # RECEIPT
+    # ========================================================
+
+    def format_halaman_struk(lst):
+        if not lst:
+            return "[]"
+
+        lines = []
+
+        for i in range(0, len(lst), 15):
+            lines.append(
+                ", ".join(
+                    map(str, lst[i:i + 15])
+                )
+            )
+
+        return "[\n    " + ",\n    ".join(lines) + "\n]"
+
+    struk_text = f"""
+======================================================================
+                         LITNUS PRINTING
+                       STRUK PEMBAYARAN
 ======================================================================
 
-Tanggal      : {str_tanggal}
-No. Transaksi: {str_trx}
-Nama File    : {nama_file_asli}
-Total Halaman: {total_pages}
-Ukuran Buku  : {ukuran_buku}
-Bahan Kertas : {jenis_kertas}
-Jenis Jilid  : {jenis_jilid}
-Mode Cetak   : {mode_cetak}
-Jumlah Cetak : {jumlah_cetak} eksemplar
+Tanggal       : {str_tanggal}
+No. Transaksi : {str_trx}
+Nama File     : {nama_file_asli}
+Total Halaman : {total_pages}
+Ukuran Buku   : {ukuran_buku}
+Bahan Kertas  : {jenis_kertas}
+Jenis Jilid   : {jenis_jilid}
+Mode Cetak    : {mode_cetak}
+Jumlah Cetak  : {jumlah_cetak} eksemplar
 
 ----------------------------------------------------------------------
-RINCIAN HARGA (PER BUKU - SETELAH DISKON OPLOS & PENYESUAIAN MODE):
+RINCIAN HALAMAN
 ----------------------------------------------------------------------
 
-🎨 WARNA ({count_warna} halaman)"""
-
-    if mode_input == "Otomatis (Upload PDF & Split File)":
-        text_detail_warna = format_halaman_list(final_color_list)
-        struk_text += f"\n   Detail  : {text_detail_warna}"
-        
-    struk_text += f"\n   Biaya   : Rp {cost_warna_per_buku:,}\n\n⚫ HITAM PUTIH ({count_bw} halaman)"
-
-    if mode_input == "Otomatis (Upload PDF & Split File)":
-        text_detail_bw = format_halaman_list(final_bw_list)
-        struk_text += f"\n   Detail  : {text_detail_bw}"
-        
-    struk_text += f"""
-   Biaya   : Rp {cost_bw_per_buku:,}
-
-----------------------------------------------------------------------
-RINCIAN AKUMULASI VOLUME PRODUKSI:
-----------------------------------------------------------------------
-📝 TOTAL ISI PER EKS : Rp {total_isi_per_buku:,}
-🛠️ FINISHING PER EKS : Rp {rate_finishing_akhir:,} ({jenis_jilid.upper()})
-💵 TOTAL HARGA PER EKS: Rp {total_harga_per_eks:,} (Isi + Finishing)
-
-📊 PERKALIAN TOTAL VOLUME:
-   Rp {total_harga_per_eks:,} x {jumlah_cetak} Eks = Rp {grand_total:,}
-
-----------------------------------------------------------------------
-💰 OPSI PILIHAN PEMBAYARAN:
-----------------------------------------------------------------------
- [1] TOTAL LUNAS : Rp {grand_total:,}
- [2] NOMINAL DP   : Rp {nominal_dp:,} (50% dari total biaya)
-----------------------------------------------------------------------
-
-Sebelum Kami proses, silahkan Transfer senilai total biaya di atas 
-atau DP minimal 50% dulu agar orderan diproses. 
-
-Berikut detail rekening kami:
-• Mandiri : 144-00-2306065-7 a/n PT Literasi Nusantara Abadi Grup
-• BCA     : 117-737-3737     a/n PT Literasi Nusantara Abadi Grup
-
-Dan mohon kirimkan bukti otentik setelah transfer.
-
-Terimakasih banyak, semoga diberi keberkahan dan kelancaran 
-dalam hidup.
-----------------------------------------------------------------------
+🎨 HALAMAN TERPILIH : {count_warna} halaman
 """
 
-    st.markdown("---")
-    st.subheader("📄 Struk & Pemisah File Siap Cetak")
-    
-    if mode_input == "Otomatis (Upload PDF & Split File)":
-        # DAFTAR TOMBOL UNDUH DINAMIS (HANYA MEMUAT FILE YANG ADA)
-        downloads = [
-            ("📥 Unduh Struk Analisis", struk_text, f"Struk_{nama_file_asli}.txt", "text/plain")
-        ]
-        if pdf_warna_bytes:
-            downloads.append(("🎨 Download PDF WARNA", pdf_warna_bytes, f"{nama_file_asli}_Mesin_WARNA.pdf", "application/pdf"))
-        if pdf_bw_bytes:
-            downloads.append(("⚫ Download PDF BW", pdf_bw_bytes, f"{nama_file_asli}_Mesin_BW.pdf", "application/pdf"))
-            
-        cols = st.columns(len(downloads))
-        for idx, (label, data, fname, mime) in enumerate(downloads):
-            with cols[idx]:
-                st.download_button(
-                    label=label,
-                    data=data,
-                    file_name=fname,
-                    mime=mime,
-                    use_container_width=True
-                )
-    else:
-        st.download_button(
-            label="📥 Unduh Struk Analisis Manual",
-            data=struk_text,
-            file_name=f"Struk_Manual_{nama_file_asli}.txt",
-            mime="text/plain"
+    if final_color_list:
+        struk_text += (
+            f"   Detail : {format_halaman_struk(final_color_list)}\n"
         )
-            
-    st.markdown("---")
-    st.markdown("### 📝 Pratinjau Struk Kasir")
-    st.code(struk_text, language="text")
 
-# --- FOOTER HALAMAN ---
-st.markdown("---")
-footer_color = "#10b981" if st.session_state.theme_mode == "dark" else "#ec4899"
-footer_html = f"""
-    <div style="text-align: center; color: rgba(148, 163, 184, 0.8); font-size: 14px; padding: 10px 0px;">
-        <p>Copyright © <a href="https://www.instagram.com/annuha_zarkasyi/?hl=id" target="_blank" style="color: {footer_color}; text-decoration: none; font-weight: bold;">@annuhazarkasyi</a></p>
-    </div>
+    struk_text += (
+        f"   Biaya  : {format_rupiah(cost_warna_per_buku)} / buku\n\n"
+    )
+
+    struk_text += (
+        f"⚫ HALAMAN SISANYA : {count_bw} halaman\n"
+    )
+
+    if final_bw_list:
+        struk_text += (
+            f"   Detail : {format_halaman_struk(final_bw_list)}\n"
+        )
+
+    struk_text += f"""
+   Biaya  : {format_rupiah(cost_bw_per_buku)} / buku
+
+----------------------------------------------------------------------
+RINCIAN AKUMULASI VOLUME
+----------------------------------------------------------------------
+
+TOTAL ISI PER EKS     : {format_rupiah(total_isi_per_buku)}
+FINISHING PER EKS     : {format_rupiah(rate_finishing_akhir)}
+TOTAL HARGA PER EKS   : {format_rupiah(total_harga_per_eks)}
+
+{format_rupiah(total_harga_per_eks)} x {jumlah_cetak} Eks
+= {format_rupiah(grand_total)}
+
+----------------------------------------------------------------------
+OPSI PEMBAYARAN
+----------------------------------------------------------------------
+
+[1] TOTAL LUNAS : {format_rupiah(grand_total)}
+[2] DP 50%      : {format_rupiah(nominal_dp)}
+
+Silahkan transfer sesuai pilihan pembayaran di atas.
+
+Rekening:
+• Mandiri : 144-00-2306065-7
+  a/n PT Literasi Nusantara Abadi Grup
+
+• BCA     : 117-737-3737
+  a/n PT Literasi Nusantara Abadi Grup
+
+Mohon kirimkan bukti transfer setelah pembayaran.
+
+Terimakasih banyak.
+Semoga diberi keberkahan dan kelancaran.
+
+======================================================================
 """
-st.markdown(footer_html, unsafe_allow_html=True)
+
+    # ========================================================
+    # DOWNLOAD AREA
+    # ========================================================
+
+    st.markdown("---")
+    st.subheader("📄 File Siap Digunakan")
+
+    if mode_input == "Otomatis — Analisis Warna PDF":
+        downloads = [
+            (
+                "📥 Unduh Struk Analisis",
+                struk_text,
+                f"Struk_{nama_file_asli}.txt",
+                "text/plain",
+            )
+        ]
+
+        if pdf_warna_bytes:
+            downloads.append(
+                (
+                    "🎨 Download PDF WARNA",
+                    pdf_warna_bytes,
+                    f"{nama_file_asli}_Mesin_WARNA.pdf",
+                    "application/pdf",
+                )
+            )
+
+        if pdf_bw_bytes:
+            downloads.append(
+                (
+                    "⚫ Download PDF BW",
+                    pdf_bw_bytes,
+                    f"{nama_file_asli}_Mesin_BW.pdf",
+                    "application/pdf",
+                )
+            )
+
+    elif mode_input == "Manual — Pilih Halaman & Split PDF":
+
+        downloads = [
+            (
+                "📥 Unduh Struk Analisis",
+                struk_text,
+                f"Struk_{nama_file_asli}.txt",
+                "text/plain",
+            )
+        ]
+
+        if pdf_warna_bytes:
+            downloads.append(
+                (
+                    "🎯 Download PDF TERPILIH",
+                    pdf_warna_bytes,
+                    f"{nama_file_asli}_Terpilih.pdf",
+                    "application/pdf",
+                )
+            )
+
+        if pdf_bw_bytes:
+            downloads.append(
+                (
+                    "⚫ Download PDF SISANYA",
+                    pdf_bw_bytes,
+                    f"{nama_file_asli}_Sisanya.pdf",
+                    "application/pdf",
+                )
+            )
+
+    else:
+        downloads = [
+            (
+                "📥 Unduh Struk Analisis Manual",
+                struk_text,
+                f"Struk_Manual_{nama_file_asli}.txt",
+                "text/plain",
+            )
+        ]
+
+    cols = st.columns(len(downloads))
+
+    for idx, (label, data, fname, mime) in enumerate(downloads):
+        with cols[idx]:
+            st.download_button(
+                label=label,
+                data=data,
+                file_name=fname,
+                mime=mime,
+                use_container_width=True,
+                key=f"download_{idx}_{mode_input}",
+            )
+
+    # ========================================================
+    # RECEIPT PREVIEW
+    # ========================================================
+
+    with st.expander("🧾 Pratinjau Struk Kasir"):
+        st.code(
+            struk_text,
+            language="text",
+        )
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+st.markdown(
+    """
+<div class="footer">
+    Litnus Printing • PDF Splitter & Cost Calculator •
+    Production Tool
+</div>
+""",
+    unsafe_allow_html=True,
+)
