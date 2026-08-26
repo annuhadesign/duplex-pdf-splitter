@@ -1,6 +1,7 @@
 import fitz  # PyMuPDF
 import os
 import re
+import math
 import streamlit as st
 from datetime import datetime, timedelta, timezone
 
@@ -1071,42 +1072,67 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
             # Mapping preview
             st.markdown("### 🔎 Hasil Konversi Nomor Buku → Nomor PDF")
 
-            mapping_html = """
-<div class="glass-card" style="padding:12px 18px;">
-<table style="width:100%;border-collapse:collapse;font-size:13px;">
+            # Tampilkan mapping dalam 3 kolom agar daftar panjang tidak
+            # memakan terlalu banyak ruang vertikal. Urutan tetap mengikuti
+            # nomor PDF fisik dari atas ke bawah per kolom.
+            mapping_column_count = min(3, max(1, len(mapping_rows)))
+            rows_per_column = math.ceil(
+                len(mapping_rows) / mapping_column_count
+            )
+
+            mapping_columns = st.columns(mapping_column_count)
+
+            for column_index, column in enumerate(mapping_columns):
+                start_index = column_index * rows_per_column
+                end_index = start_index + rows_per_column
+                column_rows = mapping_rows[start_index:end_index]
+
+                if not column_rows:
+                    continue
+
+                mapping_html = """
+<div class="glass-card" style="padding:8px 10px;margin-top:0;">
+<table style="width:100%;border-collapse:collapse;font-size:11px;">
 <thead>
 <tr>
-<th style="padding:9px;text-align:left;">Input</th>
-<th style="padding:9px;text-align:left;">Jenis</th>
-<th style="padding:9px;text-align:left;">Nomor Buku</th>
-<th style="padding:9px;text-align:right;">PDF Fisik</th>
+<th style="padding:7px 6px;text-align:left;">Input</th>
+<th style="padding:7px 6px;text-align:left;">Jenis</th>
+<th style="padding:7px 6px;text-align:center;">Buku</th>
+<th style="padding:7px 6px;text-align:right;">PDF</th>
 </tr>
 </thead>
 <tbody>
 """
 
-            for row in mapping_rows:
-                mapping_html += f"""
+                for row in column_rows:
+                    mapping_html += f"""
 <tr>
-<td style="padding:8px 9px;"><b>{row["input"]}</b></td>
-<td style="padding:8px 9px;">{row["jenis"]}</td>
-<td style="padding:8px 9px;">{row["nomor"]}</td>
-<td style="padding:8px 9px;text-align:right;color:#10b981;font-weight:800;">
+<td style="padding:6px;border-top:1px solid rgba(128,128,128,.12);">
+    <b>{row["input"]}</b>
+</td>
+<td style="padding:6px;border-top:1px solid rgba(128,128,128,.12);">
+    {row["jenis"]}
+</td>
+<td style="padding:6px;text-align:center;border-top:1px solid rgba(128,128,128,.12);">
+    {row["nomor"]}
+</td>
+<td style="padding:6px;text-align:right;border-top:1px solid rgba(128,128,128,.12);color:#10b981;font-weight:800;white-space:nowrap;">
     PDF {row["pdf_page"]}
 </td>
 </tr>
 """
 
-            mapping_html += """
+                mapping_html += """
 </tbody>
 </table>
 </div>
 """
 
-            st.markdown(
-                mapping_html,
-                unsafe_allow_html=True,
-            )
+                with column:
+                    st.markdown(
+                        mapping_html,
+                        unsafe_allow_html=True,
+                    )
 
             if auto_pair and added_pairs:
                 st.success(
