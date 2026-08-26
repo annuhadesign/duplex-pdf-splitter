@@ -332,43 +332,207 @@ def format_rupiah(value):
     return f"Rp {int(value):,}".replace(",", ".")
 
 
-def parse_page_input(text, total_pages):
+ROMAN_VALUES = {
+    "I": 1,
+    "V": 5,
+    "X": 10,
+    "L": 50,
+    "C": 100,
+    "D": 500,
+    "M": 1000,
+}
+
+
+def int_to_roman(number):
+    if number <= 0:
+        return ""
+    pairs = [
+        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+        (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+        (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+    ]
+    result = []
+    for value, symbol in pairs:
+        while number >= value:
+            result.append(symbol)
+            number -= value
+    return "".join(result)
+
+
+def roman_to_int(value):
+    value = value.upper()
+    if not value or not re.fullmatch(r"[IVXLCDM]+", value):
+        return None
+
+    total = 0
+    prev = 0
+    for char in reversed(value):
+        current = ROMAN_VALUES[char]
+        if current < prev:
+            total -= current
+        else:
+            total += current
+            prev = current
+
+    # Strict validation prevents strings such as IIX from being accepted.
+    if int_to_roman(total) != value:
+        return None
+
+    return total
+
+
+def is_roman_token(token):
+    return bool(re.fullmatch(r"[ivxlcdmIVXLCDM]+", token))
+
+
+def expand_page_token(token):
     """
+    Returns:
+        ("roman", [numbers]) or ("arabic", [numbers]) or ("error", message)
+
+    Examples:
+        iii     -> ("roman", [3])
+        iii-vii -> ("roman", [3,4,5,6,7])
+        8       -> ("arabic", [8])
+        8-12    -> ("arabic", [8,9,10,11,12])
+    """
+    token = token.strip()
+
+    if not token:
+        return "error", "Token kosong"
+
+    # Roman range, e.g. iii-vii
+    if "-" in token:
+        parts = token.split("-")
+        if len(parts) != 2:
+            return "error", f"Format tidak dikenali: {token}"
+
+        left, right = parts[0], parts[1]
+
+        if is_roman_token(left) and is_roman_token(right):
+            a = roman_to_int(left)
+            b = roman_to_int(right)
+            if a is None or b is None:
+                return "error", f"Romawi tidak valid: {token}"
+            if a > b:
+                a, b = b, a
+            return "roman", list(range(a, b + 1))
+
+        # Arabic range, e.g. 8-12
+        if left.isdigit() and right.isdigit():
+            a, b = int(left), int(right)
+            if a > b:
+                a, b = b, a
+            return "arabic", list(range(a, b + 1))
+
+        return "error", f"Format range tidak dikenali: {token}"
+
+    # Roman single page
+    if is_roman_token(token):
+        value = roman_to_int(token)
+        if value is None:
+            return "error", f"Romawi tidak valid: {token}"
+        return "roman", [value]
+
+    # Arabic single page
+    if token.isdigit():
+        return "arabic", [int(token)]
+
+    return "error", f"Format tidak dikenali: {token}"
+
+
+def parse_page_input(text, total_pages, roman_count):
+    """
+    Manual page selector dengan offset Romawi.
+
+    Aturan:
+      - Roman: iii -> PDF 3
+      - Arabic: 8 -> PDF (roman_count + 8)
+      - Jadi jika roman_count = 12:
+            xii -> PDF 12
+            3   -> PDF 15
+            8   -> PDF 20
+
     Mendukung:
-    3,7,12
-    3-8,15,20-25
-    3, 7-9, 12
+      iii, v, xii, 3, 8
+      iii-vii, 3-8
+      iii-vii, 3-8, xii, 20
     """
     if not text or not text.strip():
-        return [], []
+        return [], [], [], []
 
-    cleaned = text.replace(" ", "")
-    tokens = [x for x in cleaned.split(",") if x]
-    pages = set()
+    if roman_count < 0:
+        return [], [], [], ["Jumlah halaman Romawi tidak valid."]
+
+    tokens = [x.strip() for x in text.split(",") if x.strip()]
+
+    pdf_pages = set()
+    mapping_rows = []
     errors = []
 
     for token in tokens:
-        if re.fullmatch(r"\d+", token):
-            p = int(token)
-            if 1 <= p <= total_pages:
-                pages.add(p)
+        kind, values = expand_page_token(token)
+
+        if kind == "error":
+            errors.append(values)
+            continue
+
+        for value in values:
+            if kind == "roman":
+                if value > roman_count:
+                    errors.append(
+                        f"{token}: halaman Romawi {int_to_roman(value).lower()} "
+                        f"melebihi jumlah Romawi ({roman_count})."
+                    )
+                    continue
+
+                pdf_page = value
+                label = int_to_roman(value).lower()
+
             else:
-                errors.append(f"{token} di luar rentang 1-{total_pages}")
-        elif re.fullmatch(r"\d+-\d+", token):
-            a, b = map(int, token.split("-"))
-            if a > b:
-                a, b = b, a
-            if b < 1 or a > total_pages:
-                errors.append(f"{token} di luar rentang 1-{total_pages}")
+                # Arabic starts after all Roman pages.
+                pdf_page = roman_count + value
+                label = str(value)
+
+                max_arabic = max(0, total_pages - roman_count)
+                if value < 1 or value > max_arabic:
+                    errors.append(
+                        f"{token}: halaman Arab {value} berada di luar "
+                        f"rentang 1-{max_arabic}."
+                    )
+                    continue
+
+            if pdf_page < 1 or pdf_page > total_pages:
+                errors.append(
+                    f"{token}: menghasilkan PDF halaman {pdf_page}, "
+                    f"di luar rentang 1-{total_pages}."
+                )
                 continue
-            start = max(1, a)
-            end = min(total_pages, b)
-            pages.update(range(start, end + 1))
-        else:
-            errors.append(f"Format tidak dikenali: {token}")
 
-    return sorted(pages), errors
+            pdf_pages.add(pdf_page)
+            mapping_rows.append({
+                "input": label,
+                "jenis": "Romawi" if kind == "roman" else "Arab",
+                "nomor": value,
+                "pdf_page": pdf_page,
+            })
 
+    # Keep page order, not input order, so the split PDF follows
+    # the original document sequence.
+    sorted_pages = sorted(pdf_pages)
+
+    # De-duplicate mapping display.
+    unique_mapping = {}
+    for row in mapping_rows:
+        key = (row["jenis"], row["nomor"], row["pdf_page"])
+        unique_mapping[key] = row
+
+    mapping_rows = sorted(
+        unique_mapping.values(),
+        key=lambda x: x["pdf_page"]
+    )
+
+    return sorted_pages, mapping_rows, errors, tokens
 
 def add_duplex_pairs(selected_pages, total_pages):
     result = set(selected_pages)
@@ -534,6 +698,7 @@ st.markdown(
     <div style="margin-top:12px;">
         <span class="pill">PDF SPLITTER</span>
         <span class="pill">MANUAL PAGE SELECTOR</span>
+        <span class="pill">ROMAN + ARAB OFFSET</span>
         <span class="pill">AUTO COLOR DETECTION</span>
         <span class="pill">COST CALCULATOR</span>
         <span class="pill">DUPLEX AWARE</span>
@@ -613,6 +778,12 @@ mode_input = st.radio(
     ],
     horizontal=True,
 )
+
+if mode_input == "Manual — Pilih Halaman & Split PDF":
+    st.caption(
+        "💡 Mode manual mendukung nomor Romawi dan Arab. "
+        "Contoh: jika Romawi = 12, maka xii = PDF 12 sedangkan 8 = PDF 20."
+    )
 
 total_pages = 0
 count_warna = 0
@@ -713,14 +884,30 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
     st.sidebar.markdown("---")
     st.sidebar.header("🎯 Manual Page Selector")
 
+    roman_count = st.sidebar.number_input(
+        "Jumlah Halaman Romawi",
+        min_value=0,
+        value=12,
+        step=1,
+        help=(
+            "Jumlah halaman awal yang menggunakan nomor Romawi. "
+            "Contoh: jika 12, maka xii = PDF 12 dan halaman Arab 8 = PDF 20."
+        ),
+    )
+
     auto_pair = st.sidebar.checkbox(
         "Cari halaman sebaliknya otomatis",
         value=True,
         disabled=(mode_cetak != "Duplex (Bolak-balik)"),
         help=(
-            "Jika halaman 7 dipilih, halaman 8 akan ikut. "
-            "Jika halaman 8 dipilih, halaman 7 akan ikut."
+            "Jika halaman PDF 7 dipilih, halaman PDF 8 akan ikut. "
+            "Jika halaman PDF 8 dipilih, halaman PDF 7 akan ikut."
         ),
+    )
+
+    st.sidebar.caption(
+        f"📘 Dengan {roman_count} halaman Romawi: "
+        f"Arab 1 dimulai pada PDF halaman {roman_count + 1}."
     )
 
     uploaded_file = st.file_uploader(
@@ -733,6 +920,12 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
         nama_file_asli = os.path.splitext(uploaded_file.name)[0]
         input_bytes = uploaded_file.getvalue()
 
+        if (
+            "manual_result" in st.session_state
+            and st.session_state.manual_result.get("nama_file") != nama_file_asli
+        ):
+            del st.session_state.manual_result
+
         temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
         total_pages = len(temp_doc)
         temp_doc.close()
@@ -742,27 +935,53 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
             f"{total_pages} halaman tersedia"
         )
 
+        max_arabic_pages = max(0, total_pages - roman_count)
+
         st.markdown(
-            '<div class="glass-card">'
-            '<div class="section-title">🎯 Tentukan Halaman yang Ingin Dipisahkan</div>'
-            '<div style="color:#8fa3b8;font-size:13px;">'
-            'Masukkan nomor halaman seperti '
-            '<b>3,7,12,25</b> atau gunakan rentang '
-            '<b>3-8,15,20-25</b>.'
-            '</div></div>',
+            f"""
+<div class="glass-card">
+    <div class="section-title">
+        🎯 Tentukan Halaman yang Ingin Dipisahkan
+    </div>
+    <div style="font-size:13px;color:#8fa3b8;line-height:1.7;">
+        Masukkan nomor halaman buku, bukan nomor urut PDF.
+        <br>
+        <b>Romawi:</b> i, iii, vii, xii
+        &nbsp; • &nbsp;
+        <b>Arab:</b> 1, 3, 8, 20
+        <br>
+        <b>Range:</b> iii-vii, 3-8
+        <br>
+        Dengan <b>{roman_count}</b> halaman Romawi:
+        <b>xii → PDF {roman_count}</b> dan
+        <b>8 → PDF {roman_count + 8}</b>.
+        <br>
+        Halaman Arab yang tersedia: <b>1-{max_arabic_pages}</b>.
+    </div>
+</div>
+""",
             unsafe_allow_html=True,
         )
 
         page_input = st.text_area(
             "Nomor halaman",
-            placeholder="Contoh: 3, 7, 12-15, 25",
-            height=90,
+            placeholder=(
+                "Contoh: iii, v, xii, 3, 8, 20\n"
+                "atau: iii-vii, 3-8"
+            ),
+            height=95,
             key="manual_page_input",
         )
 
-        selected_input_pages, parse_errors = parse_page_input(
+        (
+            selected_input_pages,
+            mapping_rows,
+            parse_errors,
+            parsed_tokens,
+        ) = parse_page_input(
             page_input,
             total_pages,
+            int(roman_count),
         )
 
         if parse_errors:
@@ -771,6 +990,8 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
             )
 
         if selected_input_pages:
+
+            # Pair physical PDF pages for duplex.
             final_color_list = (
                 add_duplex_pairs(
                     selected_input_pages,
@@ -788,23 +1009,67 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
             count_warna = len(final_color_list)
             count_bw = len(final_bw_list)
 
-            # Informasi pasangan yang ditambahkan
+            # Physical pages added only because of duplex pairing.
             added_pairs = sorted(
-                set(final_color_list) - set(selected_input_pages)
+                set(final_color_list)
+                - set(selected_input_pages)
             )
 
             col_a, col_b, col_c = st.columns(3)
+
             col_a.metric(
                 "Halaman Input",
                 f"{len(selected_input_pages)} hlm",
             )
+
             col_b.metric(
                 "Halaman Terpilih",
                 f"{count_warna} hlm",
             )
+
             col_c.metric(
                 "Halaman Sisa",
                 f"{count_bw} hlm",
+            )
+
+            # Mapping preview
+            st.markdown("### 🔎 Hasil Konversi Nomor Buku → Nomor PDF")
+
+            mapping_html = """
+<div class="glass-card" style="padding:12px 18px;">
+<table style="width:100%;border-collapse:collapse;font-size:13px;">
+<thead>
+<tr>
+<th style="padding:9px;text-align:left;">Input</th>
+<th style="padding:9px;text-align:left;">Jenis</th>
+<th style="padding:9px;text-align:left;">Nomor Buku</th>
+<th style="padding:9px;text-align:right;">PDF Fisik</th>
+</tr>
+</thead>
+<tbody>
+"""
+
+            for row in mapping_rows:
+                mapping_html += f"""
+<tr>
+<td style="padding:8px 9px;"><b>{row["input"]}</b></td>
+<td style="padding:8px 9px;">{row["jenis"]}</td>
+<td style="padding:8px 9px;">{row["nomor"]}</td>
+<td style="padding:8px 9px;text-align:right;color:#10b981;font-weight:800;">
+    PDF {row["pdf_page"]}
+</td>
+</tr>
+"""
+
+            mapping_html += """
+</tbody>
+</table>
+</div>
+"""
+
+            st.markdown(
+                mapping_html,
+                unsafe_allow_html=True,
             )
 
             if auto_pair and added_pairs:
@@ -820,7 +1085,7 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
                     f"""
                     <div class="result-card result-color">
                         <div class="section-title">
-                            🎨 PDF HALAMAN TERPILIH
+                            🎯 PDF HALAMAN TERPILIH
                         </div>
                         <div class="page-list">
                             {format_page_list(final_color_list, 1800)}
@@ -875,7 +1140,11 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
                     "nama_file": nama_file_asli,
                 }
 
-            # Ambil hasil dari session jika tombol sudah ditekan
+                st.success(
+                    "✅ PDF berhasil diproses dan dipisahkan."
+                )
+
+            # Ambil hasil dari session jika tombol sudah ditekan.
             if "manual_result" in st.session_state:
                 result = st.session_state.manual_result
                 if result["nama_file"] == nama_file_asli:
@@ -885,7 +1154,6 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
                     pdf_bw_bytes = result["pdf_bw_bytes"]
 
             ready_to_calculate = True
-
 
 # ============================================================
 # MODE 3 — MANUAL COUNT ONLY
