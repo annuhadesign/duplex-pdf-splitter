@@ -923,15 +923,26 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
         ),
     )
 
-    auto_pair = st.sidebar.checkbox(
-        "Cari halaman sebaliknya otomatis",
-        value=True,
-        disabled=(mode_cetak != "Duplex (Bolak-balik)"),
-        help=(
-            "Jika halaman PDF 7 dipilih, halaman PDF 8 akan ikut. "
-            "Jika halaman PDF 8 dipilih, halaman PDF 7 akan ikut."
-        ),
-    )
+    if mode_cetak == "Duplex (Bolak-balik)":
+        auto_pair = st.sidebar.checkbox(
+            "Cari halaman sebaliknya otomatis",
+            value=True,
+            help=(
+                "Jika halaman PDF 7 dipilih, halaman PDF 8 akan ikut. "
+                "Jika halaman PDF 8 dipilih, halaman PDF 7 akan ikut."
+            ),
+        )
+    else:
+        auto_pair = False
+        st.sidebar.checkbox(
+            "Cari halaman sebaliknya otomatis",
+            value=False,
+            disabled=True,
+            help=(
+                "Tidak digunakan pada mode Simplex karena setiap halaman "
+                "dicetak sebagai satu sisi terpisah."
+            ),
+        )
 
     st.sidebar.caption(
         f"📘 Dengan {roman_count} halaman Romawi: "
@@ -1025,7 +1036,10 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
                     selected_input_pages,
                     total_pages,
                 )
-                if auto_pair
+                if (
+                    mode_cetak == "Duplex (Bolak-balik)"
+                    and auto_pair
+                )
                 else selected_input_pages
             )
 
