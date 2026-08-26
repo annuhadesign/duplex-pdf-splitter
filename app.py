@@ -464,7 +464,35 @@ def parse_page_input(text, total_pages, roman_count):
     if roman_count < 0:
         return [], [], [], ["Jumlah halaman Romawi tidak valid."]
 
-    tokens = [x.strip() for x in text.split(",") if x.strip()]
+    # Normalisasi input agar bisa dipaste dari Excel/Word/PDF dalam
+    # format horizontal maupun vertikal.
+    #
+    # Didukung:
+    #   i, iii, v, 2, 47
+    #   i\niii\nv\n2\n47
+    #   i iii v 2 47
+    #   iii-vii, 3-8
+    #   iii - vii
+    #
+    # En dash / em dash juga dinormalisasi menjadi "-" agar range
+    # hasil copy-paste tetap dikenali.
+    normalized_text = (
+        text
+        .replace("–", "-")
+        .replace("—", "-")
+    )
+
+    # Hilangkan spasi di sekitar tanda range supaya
+    # "iii - vii" menjadi "iii-vii".
+    normalized_text = re.sub(r"\s*-\s*", "-", normalized_text)
+
+    # Koma, titik koma, whitespace, tab, dan newline semuanya
+    # diperlakukan sebagai pemisah antar nomor/range.
+    tokens = [
+        x.strip()
+        for x in re.split(r"[,;\s]+", normalized_text)
+        if x.strip()
+    ]
 
     pdf_pages = set()
     mapping_rows = []
