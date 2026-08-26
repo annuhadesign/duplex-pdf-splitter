@@ -1576,85 +1576,75 @@ if ready_to_calculate:
         if current_line:
             lines.append(", ".join(current_line))
 
-        return "[\n    " + ",\n    ".join(lines) + "\n]"
+        return "\n    ".join(lines)
 
     struk_text = f"""
-======================================================================
-                         LITNUS PRINTING
-                       STRUK PEMBAYARAN
-======================================================================
+LITNUS PRINTING
+STRUK PEMBAYARAN
 
-Tanggal       : {str_tanggal}
-No. Transaksi : {str_trx}
-Nama File     : {nama_file_asli}
-Total Halaman : {total_pages}
-Ukuran Buku   : {ukuran_buku}
-Bahan Kertas  : {jenis_kertas}
-Jenis Jilid   : {jenis_jilid}
-Mode Cetak    : {mode_cetak}
-Jumlah Cetak  : {jumlah_cetak} eksemplar
+Tanggal      : {str_tanggal}
+No. Transaksi: {str_trx}
+Nama File    : {nama_file_asli}
 
-----------------------------------------------------------------------
+SPESIFIKASI
+Ukuran       : {ukuran_buku}
+Kertas       : {jenis_kertas}
+Jilid        : {jenis_jilid}
+Mode Cetak   : {mode_cetak}
+Jumlah Cetak : {jumlah_cetak} eks
+Total Halaman: {total_pages}
+
 RINCIAN HALAMAN
-----------------------------------------------------------------------
-
-🎨 HALAMAN TERPILIH : {count_warna} halaman
+🎨 Terpilih : {count_warna} halaman
 """
 
     if final_color_list:
         struk_text += (
-            f"   Detail : {format_halaman_struk(final_color_list)}\n"
+            f"   {format_halaman_struk(final_color_list)}\n"
         )
 
     struk_text += (
-        f"   Biaya  : {format_rupiah(cost_warna_per_buku)} / buku\n\n"
+        f"   Biaya: {format_rupiah(cost_warna_per_buku)} / buku\n\n"
     )
 
     struk_text += (
-        f"⚫ HALAMAN SISANYA : {count_bw} halaman\n"
+        f"⚫ Sisanya  : {count_bw} halaman\n"
     )
 
     if final_bw_list:
         struk_text += (
-            f"   Detail : {format_halaman_struk(final_bw_list)}\n"
+            f"   {format_halaman_struk(final_bw_list)}\n"
         )
 
-    struk_text += f"""
-   Biaya  : {format_rupiah(cost_bw_per_buku)} / buku
+    struk_text += f"""   Biaya: {format_rupiah(cost_bw_per_buku)} / buku
 
-----------------------------------------------------------------------
-RINCIAN AKUMULASI VOLUME
-----------------------------------------------------------------------
+RINGKASAN BIAYA
+Isi / eks       : {format_rupiah(total_isi_per_buku)}
+Finishing / eks : {format_rupiah(rate_finishing_akhir)}
+Harga / eks     : {format_rupiah(total_harga_per_eks)}
 
-TOTAL ISI PER EKS     : {format_rupiah(total_isi_per_buku)}
-FINISHING PER EKS     : {format_rupiah(rate_finishing_akhir)}
-TOTAL HARGA PER EKS   : {format_rupiah(total_harga_per_eks)}
-
-{format_rupiah(total_harga_per_eks)} x {jumlah_cetak} Eks
+TOTAL
+{format_rupiah(total_harga_per_eks)} x {jumlah_cetak} eks
 = {format_rupiah(grand_total)}
 
-----------------------------------------------------------------------
-OPSI PEMBAYARAN
-----------------------------------------------------------------------
+PEMBAYARAN
+Lunas : {format_rupiah(grand_total)}
+DP 50%: {format_rupiah(nominal_dp)}
 
-[1] TOTAL LUNAS : {format_rupiah(grand_total)}
-[2] DP 50%      : {format_rupiah(nominal_dp)}
+Silakan transfer sesuai pilihan pembayaran.
 
-Silahkan transfer sesuai pilihan pembayaran di atas.
+Mandiri
+144-00-2306065-7
+a/n PT Literasi Nusantara Abadi Grup
 
-Rekening:
-• Mandiri : 144-00-2306065-7
-  a/n PT Literasi Nusantara Abadi Grup
+BCA
+117-737-3737
+a/n PT Literasi Nusantara Abadi Grup
 
-• BCA     : 117-737-3737
-  a/n PT Literasi Nusantara Abadi Grup
+Mohon kirim bukti transfer setelah pembayaran.
 
-Mohon kirimkan bukti transfer setelah pembayaran.
-
-Terimakasih banyak.
+Terima kasih.
 Semoga diberi keberkahan dan kelancaran.
-
-======================================================================
 """
 
     # ========================================================
