@@ -959,12 +959,6 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
         nama_file_asli = os.path.splitext(uploaded_file.name)[0]
         input_bytes = uploaded_file.getvalue()
 
-        if (
-            "manual_result" in st.session_state
-            and st.session_state.manual_result.get("nama_file") != nama_file_asli
-        ):
-            del st.session_state.manual_result
-
         temp_doc = fitz.open(stream=input_bytes, filetype="pdf")
         total_pages = len(temp_doc)
         temp_doc.close()
@@ -1158,42 +1152,26 @@ elif mode_input == "Manual — Pilih Halaman & Split PDF":
                     unsafe_allow_html=True,
                 )
 
-            if st.button(
-                "⚡ Proses & Pisahkan PDF",
-                use_container_width=True,
-                key="manual_split_button",
-            ):
-                (
-                    final_color_list,
-                    final_bw_list,
-                    pdf_warna_bytes,
-                    pdf_bw_bytes,
-                ) = split_pdf_by_pages(
-                    input_bytes,
-                    tuple(final_color_list),
-                    total_pages,
-                )
+            # Reactive split:
+            # setiap perubahan input/spesifikasi membuat Streamlit rerun,
+            # sehingga file PDF hasil split selalu mengikuti state terbaru.
+            # Fungsi sudah memakai @st.cache_data, jadi jika halaman terpilih
+            # tidak berubah, hasil PDF akan diambil dari cache.
+            (
+                final_color_list,
+                final_bw_list,
+                pdf_warna_bytes,
+                pdf_bw_bytes,
+            ) = split_pdf_by_pages(
+                input_bytes,
+                tuple(final_color_list),
+                total_pages,
+            )
 
-                st.session_state.manual_result = {
-                    "final_color_list": final_color_list,
-                    "final_bw_list": final_bw_list,
-                    "pdf_warna_bytes": pdf_warna_bytes,
-                    "pdf_bw_bytes": pdf_bw_bytes,
-                    "nama_file": nama_file_asli,
-                }
-
-                st.success(
-                    "✅ PDF berhasil diproses dan dipisahkan."
-                )
-
-            # Ambil hasil dari session jika tombol sudah ditekan.
-            if "manual_result" in st.session_state:
-                result = st.session_state.manual_result
-                if result["nama_file"] == nama_file_asli:
-                    final_color_list = result["final_color_list"]
-                    final_bw_list = result["final_bw_list"]
-                    pdf_warna_bytes = result["pdf_warna_bytes"]
-                    pdf_bw_bytes = result["pdf_bw_bytes"]
+            st.caption(
+                "⚡ Hasil PDF, kalkulasi biaya, dan nota diperbarui "
+                "otomatis mengikuti pilihan terbaru."
+            )
 
             ready_to_calculate = True
 
