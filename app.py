@@ -1523,17 +1523,54 @@ if ready_to_calculate:
     # ========================================================
 
     def format_halaman_struk(lst):
+        """
+        Ringkas nomor halaman berurutan menjadi range.
+
+        Contoh:
+            [5, 6, 7, 8, 12, 14, 15, 16]
+            -> [5-8, 12, 14-16]
+
+        Data input tidak diubah; fungsi ini hanya mengatur
+        tampilan daftar halaman pada struk.
+        """
         if not lst:
             return "[]"
 
-        lines = []
+        pages = sorted(set(int(page) for page in lst))
+        ranges = []
 
-        for i in range(0, len(lst), 15):
-            lines.append(
-                ", ".join(
-                    map(str, lst[i:i + 15])
-                )
+        start = pages[0]
+        end = pages[0]
+
+        for page in pages[1:]:
+            if page == end + 1:
+                end = page
+                continue
+
+            ranges.append(
+                str(start) if start == end else f"{start}-{end}"
             )
+            start = end = page
+
+        ranges.append(
+            str(start) if start == end else f"{start}-{end}"
+        )
+
+        # Pecah baris agar struk tetap mudah dibaca bila range cukup banyak.
+        lines = []
+        current_line = []
+
+        for item in ranges:
+            candidate = ", ".join(current_line + [item])
+
+            if current_line and len(candidate) > 68:
+                lines.append(", ".join(current_line))
+                current_line = [item]
+            else:
+                current_line.append(item)
+
+        if current_line:
+            lines.append(", ".join(current_line))
 
         return "[\n    " + ",\n    ".join(lines) + "\n]"
 
