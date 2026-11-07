@@ -177,7 +177,7 @@ def calculate_with_toner_complexity(
 
 
 # ==========================================
-# CSS TEMA FLOATING CANVAS (SIMETRIS ATAS-BAWAH, SCROLLBAR HIJAU DI DALAM CONTAINER)
+# CSS TEMA FLOATING CANVAS (SCROLL KANAN AKTIF & TOMBOL SESI MENTOK KIRI BAWAH)
 # ==========================================
 st.markdown('''<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
@@ -187,17 +187,10 @@ html, body, [class*="css"] {
     color: #142829;
 }
 
-/* Kunci scroll layar luar & pusatkan kanvas secara vertikal-horizontal (imbang atas-bawah) */
+/* Kunci scroll layar luar agar frame kanvas tetap diam di tengah layar */
 html, body, [data-testid="stAppViewContainer"], .main {
     overflow: hidden !important;
     height: 100vh !important;
-}
-[data-testid="stAppViewBlockContainer"], .main > div {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: 100vh !important;
-    padding: 0 !important;
 }
 
 header[data-testid="stHeader"] {
@@ -219,7 +212,7 @@ header[data-testid="stHeader"] {
     background-attachment: fixed !important;
 }
 
-/* Kontainer Utama Sebagai FLOATING APP CANVAS: 92vh dengan margin 4vh atas & 4vh bawah (100% IMBANG) */
+/* Kontainer Utama Sebagai FLOATING APP CANVAS: 92vh dengan margin 4vh atas & 4vh bawah (IMBANG) */
 .block-container {
     max-width: 1360px !important;
     width: 95vw !important;
@@ -237,48 +230,41 @@ header[data-testid="stHeader"] {
     box-sizing: border-box !important;
 }
 
-/* Kolom Kiri (Sidebar In-Canvas): Tinggi penuh 92vh & Flexbox Space-Between agar Tombol Sesi Mentok Bawah & Tidak Terpotong */
+/* Kolom Kiri (Sidebar In-Canvas): Posisi Relative & Tinggi 92vh Penuh */
 .st-key-canvas_sidebar {
-    padding: 2.1rem 1.4rem 1.4rem 1.85rem !important;
+    position: relative !important;
+    padding: 2.1rem 1.4rem 5.5rem 1.85rem !important;
     border-right: 1.5px solid rgba(255, 255, 255, 0.65);
     height: 92vh !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-}
-.st-key-canvas_sidebar > div[data-testid="stVerticalBlock"] {
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
 }
 
-/* Kolom Kanan (Main Workspace): Dikurangi 36px (18px atas & 18px bawah) + jarak kanan 10px agar Scrollbar TIDAK KELUAR dari sudut 34px */
+/* Kolom Kanan (Main Workspace): BISA DIGULIR LANCAR & TIDAK KELUAR DARI SUDUT 34PX */
 .st-key-canvas_main {
-    padding: 1.4rem 1.6rem 2.4rem 1.6rem !important;
-    margin: 18px 10px 18px 0 !important;
-    height: calc(92vh - 36px) !important;
+    padding: 1.5rem 1.6rem 3rem 1.6rem !important;
+    margin: 16px 10px 16px 0 !important;
+    height: calc(92vh - 32px) !important;
+    max-height: calc(92vh - 32px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     scroll-behavior: smooth;
     box-sizing: border-box !important;
 }
 
-/* Custom Scrollbar Hijau Gradasi Sesuai Tema Side Menu (Tanpa scrollbar-color standar yang menimpa Webkit) */
+/* Custom Scrollbar Hijau Gradasi Sesuai Tema Side Menu */
 .st-key-canvas_main::-webkit-scrollbar {
     width: 8px !important;
 }
 .st-key-canvas_main::-webkit-scrollbar-track {
-    background: rgba(13, 122, 118, 0.10) !important;
+    background: rgba(13, 122, 118, 0.08) !important;
     border-radius: 99px !important;
-    margin: 12px 0 !important;
+    margin: 14px 0 !important;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #0b6e6d 0%, #178d89 100%) !important;
     border-radius: 99px !important;
-    border: 1.5px solid rgba(232, 244, 242, 0.7) !important;
+    border: 1.5px solid rgba(232, 244, 242, 0.65) !important;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, #085554 0%, #0d7a76 100%) !important;
@@ -373,13 +359,17 @@ header[data-testid="stHeader"] {
     border-top: 1px solid rgba(13, 122, 118, 0.15);
 }
 
-/* Tombol Keluar / Ganti Sesi Mentok di Dasar Kiri Bawah & Lebar 100% Utuh Tanpa Terpotong */
-.st-key-nav_session {
-    margin-top: auto !important;
+/* Tombol Keluar / Ganti Sesi: MENTOK DI DASAR POJOK KIRI BAWAH & LEBAR PRESISI (TIDAK TERPOTONG) */
+div[class*="st-key-nav_session"], .st-key-nav_session {
+    position: absolute !important;
+    bottom: 1.5rem !important;
+    left: 1.85rem !important;
+    width: calc(100% - 3.25rem) !important;
     padding-top: 0.85rem !important;
-    border-top: 1px solid rgba(13, 122, 118, 0.16);
-    width: 100% !important;
+    border-top: 1px solid rgba(13, 122, 118, 0.16) !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
+    z-index: 25 !important;
 }
 .st-key-nav_session button {
     background: rgba(255, 255, 255, 0.68) !important;
@@ -745,10 +735,6 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         overflow-y: auto !important;
         height: auto !important;
     }
-    [data-testid="stAppViewBlockContainer"], .main > div {
-        display: block !important;
-        height: auto !important;
-    }
     .block-container {
         height: auto !important;
         width: 96vw !important;
@@ -762,8 +748,14 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         border-bottom: 1px solid rgba(255, 255, 255, 0.5);
         padding: 1.4rem !important;
     }
+    div[class*="st-key-nav_session"], .st-key-nav_session {
+        position: static !important;
+        width: 100% !important;
+        margin-top: 1.2rem !important;
+    }
     .st-key-canvas_main {
         height: auto !important;
+        max-height: none !important;
         margin: 0 !important;
         padding: 1.4rem !important;
     }
@@ -883,28 +875,27 @@ col_nav, col_main = st.columns([0.24, 0.76], gap='small')
 
 with col_nav:
     with st.container(key='canvas_sidebar'):
-        with st.container(key='sidebar_top_wrap'):
-            st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
 
-            nav_menu = st.container(key='nav_menu')
-            nav_admin = st.container(key='nav_admin') if logged_in else None
+        nav_menu = st.container(key='nav_menu')
+        nav_admin = st.container(key='nav_admin') if logged_in else None
 
-            for page, (method_name, path) in MENU.items():
-                if page == 'Admin Tarif' and not logged_in:
-                    continue
-                active = screen == page
-                icon_color = '#ffffff' if active else '#0d7a76'
-                icon_uri = icon_data_uri(path, icon_color, 30)
-                target_container = nav_menu if method_name else nav_admin
-                with target_container:
-                    st.button(
-                        f'![](data:image/svg+xml,{icon_uri}) {page}',
-                        key=f'btn_{page}',
-                        type='primary' if active else 'secondary',
-                        on_click=go_to,
-                        args=(page,),
-                        use_container_width=True,
-                    )
+        for page, (method_name, path) in MENU.items():
+            if page == 'Admin Tarif' and not logged_in:
+                continue
+            active = screen == page
+            icon_color = '#ffffff' if active else '#0d7a76'
+            icon_uri = icon_data_uri(path, icon_color, 30)
+            target_container = nav_menu if method_name else nav_admin
+            with target_container:
+                st.button(
+                    f'![](data:image/svg+xml,{icon_uri}) {page}',
+                    key=f'btn_{page}',
+                    type='primary' if active else 'secondary',
+                    on_click=go_to,
+                    args=(page,),
+                    use_container_width=True,
+                )
 
         with st.container(key='nav_session'):
             sess_active = screen == 'Ganti Sesi'
