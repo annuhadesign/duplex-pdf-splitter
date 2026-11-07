@@ -57,7 +57,7 @@ def icon_data_uri(path, color='#0d8480', size=30):
 
 
 # ==========================================
-# CSS TEMA FLOATING CANVAS (OPTIMIZED & SCROLLABLE)
+# CSS TEMA FLOATING CANVAS (LOCKED FRAME, INTERNAL RIGHT SCROLL)
 # ==========================================
 st.markdown('''<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
@@ -67,16 +67,16 @@ html, body, [class*="css"] {
     color: #142829;
 }
 
-/* Pastikan seluruh halaman bisa digulir (scrollable) dengan mulus */
+/* Kunci scroll layar luar agar frame kanvas tetap diam di tengah layar */
 html, body, [data-testid="stAppViewContainer"], .main {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: auto !important;
+    overflow: hidden !important;
+    height: 100vh !important;
 }
 
 header[data-testid="stHeader"] {
     background: transparent !important;
-    height: 1rem !important;
+    height: 0rem !important;
+    min-height: 0rem !important;
 }
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {
     display: none !important;
@@ -91,34 +91,63 @@ header[data-testid="stHeader"] {
     background-attachment: fixed !important;
 }
 
-/* Kontainer Utama Sebagai FLOATING APP CANVAS (Ukuran konsisten & bisa digulir) */
+/* Kontainer Utama Sebagai FLOATING APP CANVAS (Tinggi dikunci & overflow hidden agar isi tidak pernah bocor keluar) */
 .block-container {
     max-width: 1360px !important;
-    min-height: 860px !important;
-    margin: 1.8rem auto 3rem auto !important;
+    height: calc(100vh - 3.2rem) !important;
+    max-height: 900px !important;
+    min-height: 680px !important;
+    margin: 1.6rem auto !important;
     padding: 0 !important;
-    background: linear-gradient(125deg, rgba(232, 244, 242, 0.95) 0%, rgba(220, 238, 236, 0.92) 65%, rgba(232, 230, 245, 0.92) 100%) !important;
-    border: 2.5px solid rgba(255, 255, 255, 0.86) !important;
+    background: linear-gradient(125deg, rgba(232, 244, 242, 0.96) 0%, rgba(220, 238, 236, 0.93) 65%, rgba(232, 230, 245, 0.93) 100%) !important;
+    border: 2.5px solid rgba(255, 255, 255, 0.88) !important;
     border-radius: 34px !important;
     box-shadow:
-        0 28px 60px rgba(18, 52, 56, 0.13),
+        0 28px 60px rgba(18, 52, 56, 0.14),
         0 10px 22px rgba(18, 52, 56, 0.06),
         inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
-    overflow: visible !important;
+    overflow: hidden !important;
 }
 
-/* Kolom Kiri (Sidebar In-Canvas) & Kolom Kanan (Main Workspace) */
+/* Kolom Kiri (Sidebar In-Canvas): TETAP DIAM (Fixed di dalam Canvas) */
 .st-key-canvas_sidebar {
-    padding: 2.3rem 1.35rem 2.3rem 2rem !important;
-    border-right: 1.5px solid rgba(255, 255, 255, 0.6);
-    min-height: 850px !important;
-    display: flex;
-    flex-direction: column;
+    padding: 2.2rem 1.35rem 2rem 2rem !important;
+    border-right: 1.5px solid rgba(255, 255, 255, 0.65);
+    height: calc(100vh - 3.2rem) !important;
+    max-height: 900px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none;
+}
+.st-key-canvas_sidebar::-webkit-scrollbar {
+    display: none;
 }
 
+/* Kolom Kanan (Main Workspace): BISA DIGULIR INTERNAL TANPA KELUAR FRAME */
 .st-key-canvas_main {
-    padding: 2.1rem 2.5rem 2.6rem 1.8rem !important;
-    min-height: 850px !important;
+    padding: 2rem 2.4rem 2.8rem 1.8rem !important;
+    height: calc(100vh - 3.2rem) !important;
+    max-height: 900px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar Halus untuk Konten Kanan */
+.st-key-canvas_main::-webkit-scrollbar {
+    width: 7px;
+}
+.st-key-canvas_main::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 99px;
+    margin: 18px 0;
+}
+.st-key-canvas_main::-webkit-scrollbar-thumb {
+    background: rgba(13, 122, 118, 0.28);
+    border-radius: 99px;
+}
+.st-key-canvas_main::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 122, 118, 0.5);
 }
 
 /* Brand Logo "LitnusPro" Diperbesar + Pro warna hijau teal senada menu */
@@ -127,7 +156,7 @@ header[data-testid="stHeader"] {
     font-weight: 800;
     color: #142829;
     letter-spacing: -0.03em;
-    padding: 0.1rem 0.5rem 1.8rem 0.5rem;
+    padding: 0.1rem 0.5rem 1.6rem 0.5rem;
     line-height: 1.1;
 }
 .brand-logo span {
@@ -140,13 +169,13 @@ header[data-testid="stHeader"] {
 
 /* Tombol Menu Navigasi Kiri: RATA KIRI, ICON SVG 2X UKURAN HURUF (30px vs 15px) */
 .st-key-nav_menu button, .st-key-nav_admin button {
-    min-height: 58px !important;
+    min-height: 56px !important;
     width: 100% !important;
     display: flex !important;
     justify-content: flex-start !important;
     align-items: center !important;
     text-align: left !important;
-    padding: 0.65rem 1.15rem !important;
+    padding: 0.6rem 1.15rem !important;
     border-radius: 16px !important;
     border: none !important;
     background: transparent !important;
@@ -155,7 +184,7 @@ header[data-testid="stHeader"] {
     font-weight: 600 !important;
     box-shadow: none !important;
     transition: background 0.15s ease, color 0.15s ease !important;
-    margin-bottom: 0.45rem !important;
+    margin-bottom: 0.4rem !important;
 }
 
 .st-key-nav_menu button > div, .st-key-nav_admin button > div {
@@ -167,7 +196,7 @@ header[data-testid="stHeader"] {
 }
 
 .st-key-nav_menu button p, .st-key-nav_admin button p {
-    font-size: 0.95rem !important; /* ~15px */
+    font-size: 0.95rem !important;
     font-weight: 600 !important;
     margin: 0 !important;
     text-align: left !important;
@@ -204,14 +233,14 @@ header[data-testid="stHeader"] {
 }
 
 .st-key-nav_admin {
-    margin-top: 1.2rem;
-    padding-top: 1.1rem;
+    margin-top: 1.1rem;
+    padding-top: 1rem;
     border-top: 1px solid rgba(13, 122, 118, 0.15);
 }
 
 /* Panel Identitas / Login Anonim di Sidebar */
 .st-key-guest_box {
-    margin-top: 1.4rem;
+    margin-top: 1.2rem;
     padding: 0.95rem 1rem !important;
     background: rgba(255, 255, 255, 0.48) !important;
     border: 1px solid rgba(255, 255, 255, 0.78) !important;
@@ -223,7 +252,7 @@ header[data-testid="stHeader"] {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.35rem;
+    margin-bottom: 1.25rem;
     gap: 16px;
 }
 .welcome-text {
@@ -233,7 +262,7 @@ header[data-testid="stHeader"] {
     margin-bottom: 0.15rem;
 }
 .page-main-title {
-    font-size: 2.3rem;
+    font-size: 2.25rem;
     font-weight: 700;
     color: #152223;
     letter-spacing: -0.03em;
@@ -258,10 +287,10 @@ header[data-testid="stHeader"] {
     display: flex;
     align-items: center;
     gap: 11px;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.55);
     padding: 5px 14px 5px 6px;
     border-radius: 99px;
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.85);
 }
 .user-avatar {
     width: 36px;
@@ -291,20 +320,22 @@ header[data-testid="stHeader"] {
 .st-key-card_total,
 .st-key-card_admin_login,
 .st-key-card_admin_info,
-.st-key-card_admin_panel {
+.st-key-card_admin_panel,
+.st-key-card_admin_tiers,
+.st-key-card_admin_save {
     background: rgba(238, 247, 245, 0.72) !important;
     border: 1.5px solid rgba(255, 255, 255, 0.82) !important;
     border-radius: 24px !important;
-    padding: 1.45rem 1.65rem !important;
+    padding: 1.35rem 1.6rem !important;
     box-shadow: 0 12px 26px -8px rgba(17, 60, 58, 0.06) !important;
-    margin-bottom: 1.2rem !important;
+    margin-bottom: 1.15rem !important;
 }
 
 .card-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.95rem;
+    margin-bottom: 0.85rem;
 }
 .card-title {
     font-size: 1.05rem;
@@ -320,7 +351,7 @@ header[data-testid="stHeader"] {
 
 /* Input Fields di dalam Glass Card */
 div[data-baseweb="input"], div[data-baseweb="select"] > div, div[data-baseweb="textarea"] {
-    background-color: rgba(255, 255, 255, 0.82) !important;
+    background-color: rgba(255, 255, 255, 0.84) !important;
     border: 1px solid rgba(255, 255, 255, 0.95) !important;
     border-radius: 14px !important;
 }
@@ -345,15 +376,15 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     background: rgba(238, 247, 245, 0.72);
     border: 1.5px solid rgba(255, 255, 255, 0.82);
     border-radius: 22px;
-    padding: 1.1rem 1.2rem;
+    padding: 1.05rem 1.15rem;
     display: flex;
     align-items: center;
     gap: 14px;
     box-shadow: 0 10px 22px -6px rgba(17, 60, 58, 0.06);
 }
 .stat-badge {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 14px;
     display: flex;
     align-items: center;
@@ -379,7 +410,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     margin-bottom: 2px;
 }
 .stat-meta-val {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: #162627;
     line-height: 1.15;
@@ -396,7 +427,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     border-radius: 99px;
     overflow: hidden;
     display: flex;
-    margin: 0.5rem 0 0.95rem 0;
+    margin: 0.45rem 0 0.9rem 0;
 }
 .stat-bar-fill-teal {
     background: #0d7a76;
@@ -411,12 +442,13 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 .training-banner {
     background: linear-gradient(115deg, #095d5c 0%, #148582 60%, #106c6e 100%);
     border-radius: 24px;
-    padding: 1.45rem 1.65rem;
+    padding: 1.35rem 1.6rem;
     color: #ffffff;
     position: relative;
     overflow: hidden;
     box-shadow: 0 14px 28px -8px rgba(9, 93, 92, 0.38);
-    margin-top: 0.8rem;
+    margin-top: 0.4rem;
+    margin-bottom: 0.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -430,10 +462,10 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 }
 .training-banner h4 {
     color: #ffffff;
-    font-size: 1.22rem;
+    font-size: 1.2rem;
     font-weight: 700;
     line-height: 1.3;
-    margin: 0.35rem 0 0.9rem 0;
+    margin: 0.3rem 0 0.85rem 0;
 }
 .banner-pill-btn {
     display: inline-block;
@@ -441,7 +473,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     color: #095d5c;
     font-size: 0.76rem;
     font-weight: 600;
-    padding: 0.46rem 1.05rem;
+    padding: 0.44rem 1rem;
     border-radius: 99px;
 }
 
@@ -462,22 +494,47 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 }
 
 @media (max-width: 900px) {
+    html, body, [data-testid="stAppViewContainer"], .main {
+        overflow-y: auto !important;
+        height: auto !important;
+    }
     .block-container {
+        height: auto !important;
+        max-height: none !important;
         margin: 0.5rem !important;
         border-radius: 22px !important;
+        overflow: visible !important;
     }
     .st-key-canvas_sidebar {
-        min-height: auto !important;
+        height: auto !important;
+        max-height: none !important;
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.5);
         padding: 1.4rem !important;
     }
     .st-key-canvas_main {
-        min-height: auto !important;
+        height: auto !important;
+        max-height: none !important;
         padding: 1.4rem !important;
     }
 }
 </style>''', unsafe_allow_html=True)
+
+# SVG Grafik Kubus 3D Satu Baris (Mencegah bug markdown code-block yang memunculkan teks </div>)
+CUBE_SVG = '<svg width="105" height="98" viewBox="0 0 110 105" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="72" cy="24" r="18" fill="#8be23b"/><rect x="18" y="34" width="28" height="28" rx="7" transform="rotate(-18 18 34)" fill="#ffffff" fill-opacity="0.92"/><rect x="64" y="52" width="26" height="26" rx="6" transform="rotate(22 64 52)" fill="#e8f8f7"/><circle cx="48" cy="76" r="8" fill="#b469ff"/><ellipse cx="62" cy="94" rx="38" ry="8" fill="#064544" fill-opacity="0.55"/></svg>'
+
+
+def render_training_banner(sub_text="DON'T FORGET"):
+    return (
+        f'<div class="training-banner">'
+        f'<div style="max-width: 66%;">'
+        f'<div class="sub">{sub_text}</div>'
+        f'<h4>Siapkan pracetak &amp; cek bleed 5mm</h4>'
+        f'<span class="banner-pill-btn">Standar Produksi Litnus</span>'
+        f'</div>'
+        f'<div style="flex-shrink: 0;">{CUBE_SVG}</div>'
+        f'</div>'
+    )
 
 
 # ==========================================
@@ -503,7 +560,6 @@ def remember_pdf(upload_key, pdf_key, method_name):
     upload = st.session_state.get(upload_key)
     if upload is not None:
         st.session_state[pdf_key] = (upload.name, upload.getvalue())
-        # Otomatis ubah Judul Buku mengikuti nama file PDF (tanpa ekstensi .pdf)
         clean_title = os.path.splitext(upload.name)[0].replace('_', ' ').strip()
         if clean_title:
             stored_title = f'draft:{method_name}:title'
@@ -539,11 +595,9 @@ logged_in = st.user.get('is_logged_in', False)
 admin = logged_in and st.user.get('email') in secrets.get('admin_emails', [])
 screen = st.session_state.setdefault('workspace', 'Admin Tarif' if logged_in else 'Kalkulator Cepat')
 
-# Inisialisasi state nama login anonim (Guest Name)
 if 'anon_name' not in st.session_state:
     st.session_state['anon_name'] = 'Tamu Studio'
 
-# Penentuan Nama Lengkap untuk Topbar Kanan Atas & Sapaan Welcome Back
 if logged_in:
     raw_name = st.user.get('name') or st.user.get('email', 'User').split('@')[0]
     user_full_name = raw_name.strip()
@@ -553,7 +607,7 @@ else:
 initials = ''.join([part[0] for part in user_full_name.split()[:2]]).upper() or 'TS'
 
 # ==========================================
-# STRUKTUR FLOATING CANVAS: SIDEBAR + MAIN
+# STRUKTUR FLOATING CANVAS: SIDEBAR (DIAM) + MAIN (SCROLLABLE)
 # ==========================================
 col_nav, col_main = st.columns([0.24, 0.76], gap='small')
 
@@ -567,7 +621,6 @@ with col_nav:
         for page, (method_name, path) in MENU.items():
             active = screen == page
             icon_color = '#ffffff' if active else '#0d7a76'
-            # Ukuran icon SVG 30px (2x ukuran huruf 15px di sampingnya)
             icon_uri = icon_data_uri(path, icon_color, 30)
             target_container = nav_menu if method_name else nav_admin
             with target_container:
@@ -580,7 +633,6 @@ with col_nav:
                     use_container_width=True,
                 )
 
-        # Fitur Login Anonim (Untuk mengisi nama sapaan & profil kanan atas tanpa OAuth)
         with st.container(key='guest_box'):
             if not logged_in:
                 st.markdown(
@@ -607,29 +659,29 @@ with col_nav:
 
 with col_main:
     with st.container(key='canvas_main'):
-        # TOPBAR: Welcome Back (Nama Lengkap) di kiri, Search + Bell + Avatar + Nama Lengkap di kanan atas
         search_svg = icon_svg('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', '#0d7a76', 20)
         bell_svg = icon_svg('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>', '#0d7a76', 20)
 
-        st.markdown(f'''
-            <div class="topbar-wrap">
-                <div>
-                    <div class="welcome-text">Welcome back, {user_full_name} 👋</div>
-                    <h1 class="page-main-title">{screen}</h1>
-                </div>
-                <div class="user-profile-bar">
-                    <span class="top-icon-btn">{search_svg}</span>
-                    <span class="top-icon-btn">{bell_svg}</span>
-                    <div class="user-chip">
-                        <div class="user-avatar">{initials}</div>
-                        <span class="user-name">{user_full_name}</span>
-                    </div>
-                </div>
-            </div>
-        ''', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="topbar-wrap">'
+            f'<div>'
+            f'<div class="welcome-text">Welcome back, {user_full_name} 👋</div>'
+            f'<h1 class="page-main-title">{screen}</h1>'
+            f'</div>'
+            f'<div class="user-profile-bar">'
+            f'<span class="top-icon-btn">{search_svg}</span>'
+            f'<span class="top-icon-btn">{bell_svg}</span>'
+            f'<div class="user-chip">'
+            f'<div class="user-avatar">{initials}</div>'
+            f'<span class="user-name">{user_full_name}</span>'
+            f'</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
         # ==========================================
-        # HALAMAN 1: ADMIN TARIF (Ukuran & Layout Konsisten + Tabel Scrollable)
+        # HALAMAN 1: ADMIN TARIF (Tabel Proporsional + Scroll di Konten Kanan Saja)
         # ==========================================
         if screen == 'Admin Tarif':
             if not admin:
@@ -637,21 +689,22 @@ with col_main:
                 col_adm_left, col_adm_right = st.columns([1.15, 1], gap='medium')
                 with col_adm_left:
                     with st.container(key='card_admin_login'):
-                        st.markdown(f'''
-                            <div class="card-header-row">
-                                <h3 class="card-title">Otorisasi Ruang Admin</h3>
-                                <span class="card-action-link">Google OAuth 2.0</span>
-                            </div>
-                            <div style="text-align: center; padding: 1.4rem 0.5rem 1.2rem 0.5rem;">
-                                <div style="display: inline-flex; padding: 16px; border-radius: 20px; background: rgba(13, 122, 118, 0.12); margin-bottom: 1rem;">
-                                    {lock_svg}
-                                </div>
-                                <h3 style="margin: 0 0 0.45rem 0; font-weight: 700; color: #152627;">Akses Pengaturan Tarif</h3>
-                                <p style="margin: 0; font-size: 0.9rem; color: #4e6d6c;">
-                                    Masuk menggunakan akun Google Admin terdaftar untuk memperbarui matriks harga kertas, jilid, dan jenjang diskon.
-                                </p>
-                            </div>
-                        ''', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div class="card-header-row">'
+                            f'<h3 class="card-title">Otorisasi Ruang Admin</h3>'
+                            f'<span class="card-action-link">Google OAuth 2.0</span>'
+                            f'</div>'
+                            f'<div style="text-align: center; padding: 1.4rem 0.5rem 1.2rem 0.5rem;">'
+                            f'<div style="display: inline-flex; padding: 16px; border-radius: 20px; background: rgba(13, 122, 118, 0.12); margin-bottom: 1rem;">'
+                            f'{lock_svg}'
+                            f'</div>'
+                            f'<h3 style="margin: 0 0 0.45rem 0; font-weight: 700; color: #152627;">Akses Pengaturan Tarif</h3>'
+                            f'<p style="margin: 0; font-size: 0.9rem; color: #4e6d6c;">'
+                            f'Masuk menggunakan akun Google Admin terdaftar untuk memperbarui matriks harga kertas, jilid, dan jenjang diskon.'
+                            f'</p>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
                         if logged_in:
                             st.warning(f'Akun **{user_full_name}** belum terdaftar di `admin_emails`.')
                         elif 'auth' in secrets:
@@ -663,83 +716,83 @@ with col_main:
 
                 with col_adm_right:
                     with st.container(key='card_admin_info'):
-                        st.markdown(f'''
-                            <div class="card-header-row">
-                                <h3 class="card-title">Status Konfigurasi Saat Ini</h3>
-                                <span class="card-action-link">Versi v{version or 1}</span>
-                            </div>
-                            <div style="font-size: 0.88rem; color: #3d5a59; line-height: 1.65;">
-                                <p style="margin-bottom: 0.6rem;">• <b>Ukuran Default:</b> Unesco (15.5 x 23 cm)</p>
-                                <p style="margin-bottom: 0.6rem;">• <b>DP Tagihan:</b> {config['dp']}% dari total pesanan</p>
-                                <p style="margin-bottom: 0.6rem;">• <b>Pengali Cetak:</b> Simplex {config['simplex']}x | Hardcover {config['hardcover']}x</p>
-                                <p style="margin-bottom: 0.2rem;">• <b>Diskon Finishing:</b> Bertahap {config['finishing_discount']}% tiap {config['finishing_step']} eks (Maks {config['finishing_cap']}%)</p>
-                            </div>
-                        ''', unsafe_allow_html=True)
-
-                    cube_graphic = '''
-                    <svg width="110" height="105" viewBox="0 0 110 105" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="72" cy="24" r="18" fill="#8be23b"/>
-                        <rect x="18" y="34" width="28" height="28" rx="7" transform="rotate(-18 18 34)" fill="#ffffff" fill-opacity="0.92"/>
-                        <rect x="64" y="52" width="26" height="26" rx="6" transform="rotate(22 64 52)" fill="#e8f8f7"/>
-                        <circle cx="48" cy="76" r="8" fill="#b469ff"/>
-                        <ellipse cx="62" cy="94" rx="38" ry="8" fill="#064544" fill-opacity="0.55"/>
-                    </svg>
-                    '''
-                    st.markdown(f'''
-                        <div class="training-banner">
-                            <div style="max-width: 66%;">
-                                <div class="sub">PANDUAN PRACETAK</div>
-                                <h4>Siapkan pracetak & cek bleed 5mm</h4>
-                                <span class="banner-pill-btn">Standar Produksi Litnus</span>
-                            </div>
-                            <div style="flex-shrink: 0;">{cube_graphic}</div>
-                        </div>
-                    ''', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div class="card-header-row">'
+                            f'<h3 class="card-title">Status Konfigurasi Saat Ini</h3>'
+                            f'<span class="card-action-link">Versi v{version or 1}</span>'
+                            f'</div>'
+                            f'<div style="font-size: 0.88rem; color: #3d5a59; line-height: 1.65;">'
+                            f'<p style="margin-bottom: 0.6rem;">• <b>Ukuran Default:</b> Unesco (15.5 x 23 cm)</p>'
+                            f'<p style="margin-bottom: 0.6rem;">• <b>DP Tagihan:</b> {config["dp"]}% dari total pesanan</p>'
+                            f'<p style="margin-bottom: 0.6rem;">• <b>Pengali Cetak:</b> Simplex {config["simplex"]}x | Hardcover {config["hardcover"]}x</p>'
+                            f'<p style="margin-bottom: 0.2rem;">• <b>Diskon Finishing:</b> Bertahap {config["finishing_discount"]}% tiap {config["finishing_step"]} eks (Maks {config["finishing_cap"]}%)</p>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+                    st.markdown(render_training_banner('PANDUAN PRACETAK'), unsafe_allow_html=True)
                 st.stop()
 
-            # Panel Admin Saat Sudah Login (Semua tabel memiliki height eksplisit & halaman bisa digulir penuh)
+            # Panel Admin Saat Sudah Login (Stacking Rapi di Dalam Kontainer Kanan)
+            if not configured:
+                st.info('Hubungkan database PostgreSQL di secrets.toml untuk menyimpan perubahan tarif.')
+                st.stop()
+
+            draft = copy.deepcopy(config)
+            rows = []
+            for sz, p in config['prices'].items():
+                for paper in ['HVS 70', 'BP 57']:
+                    rows.append(dict(Ukuran=sz, Kertas=paper, Warna=p[paper]['warna'], BW=p[paper]['bw'], Finishing=p['base_finishing_soft']))
+
             with st.container(key='card_admin_panel'):
                 st.markdown(
                     '<div class="card-header-row">'
-                    '<h3 class="card-title">Matriks Harga & Diskon Produksi</h3>'
+                    '<h3 class="card-title">1. Matriks Harga Kertas &amp; Jilid</h3>'
                     '<span class="card-action-link">Database Sync Aktif</span>'
                     '</div>',
                     unsafe_allow_html=True,
                 )
-                if not configured:
-                    st.info('Hubungkan database PostgreSQL di secrets.toml untuk menyimpan perubahan tarif.')
-                    st.stop()
-                draft = copy.deepcopy(config)
-                rows = []
-                for sz, p in config['prices'].items():
-                    for paper in ['HVS 70', 'BP 57']:
-                        rows.append(dict(Ukuran=sz, Kertas=paper, Warna=p[paper]['warna'], BW=p[paper]['bw'], Finishing=p['base_finishing_soft']))
-                st.caption('Tabel dapat digulir. Nilai Finishing untuk ukuran kertas yang sama harus bernilai sama.')
+                st.caption('Nilai Finishing pada kedua baris kertas untuk ukuran yang sama harus sama.')
                 edited = st.data_editor(
                     rows,
                     disabled=['Ukuran', 'Kertas'],
                     hide_index=True,
                     use_container_width=True,
-                    height=390,
+                    height=240,
                 )
                 c1, c2, c3 = st.columns(3)
                 draft['simplex'] = c1.number_input('Pengali simplex', min_value=0.1, value=float(config['simplex']))
                 draft['hardcover'] = c2.number_input('Pengali hardcover', min_value=0.1, value=float(config['hardcover']))
                 draft['dp'] = c3.number_input('DP (%)', 0, 100, int(config['dp']))
 
-                st.write('**Jenjang Diskon Eksemplar (Scrollable)**')
+            with st.container(key='card_admin_tiers'):
+                st.markdown(
+                    '<div class="card-header-row">'
+                    '<h3 class="card-title">2. Jenjang Diskon Eksemplar &amp; Finishing</h3>'
+                    '<span class="card-action-link">Otomatisasi Diskon</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
                 draft['tiers'] = st.data_editor(
                     config['tiers'],
                     num_rows='dynamic',
                     key='tiers',
                     hide_index=True,
                     use_container_width=True,
-                    height=260,
+                    height=200,
                 )
                 c1, c2, c3 = st.columns(3)
                 draft['finishing_step'] = c1.number_input('Interval finishing', 1, value=int(config['finishing_step']))
                 draft['finishing_discount'] = c2.number_input('Tambahan diskon (%)', 0, 100, int(config['finishing_discount']))
                 draft['finishing_cap'] = c3.number_input('Batas diskon finishing (%)', 0, 100, int(config['finishing_cap']))
+
+            with st.container(key='card_admin_save'):
+                st.markdown(
+                    '<div class="card-header-row">'
+                    '<h3 class="card-title">3. Simulasi &amp; Simpan Perubahan</h3>'
+                    '<span class="card-action-link">Verifikasi Tarif</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
                 try:
                     finishing = {}
                     for row in edited:
@@ -778,14 +831,14 @@ with col_main:
         col_left, col_right = st.columns([1.15, 1], gap='medium')
 
         with col_left:
-            # KARTU 1: NASKAH BUKU
             with st.container(key='card_naskah'):
-                st.markdown(f'''
-                    <div class="card-header-row">
-                        <h3 class="card-title">Naskah & Halaman</h3>
-                        <span class="card-action-link">{method}</span>
-                    </div>
-                ''', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="card-header-row">'
+                    f'<h3 class="card-title">Naskah &amp; Halaman</h3>'
+                    f'<span class="card-action-link">{method}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
                 uploaded = None
                 color = bw = 0
@@ -818,23 +871,21 @@ with col_main:
                             placeholder='Contoh: iii-v, 1, 5-9',
                         )
                 else:
-                    # Kalkulator Cepat: default judul buku "Karya Terhebat"
                     title = draft_widget(st.text_input, 'title', 'Judul buku', value='Karya Terhebat')
                     ca, cb_col = st.columns(2)
                     color = draft_widget(ca.number_input, 'color', 'Halaman warna', min_value=0, value=0)
                     bw = draft_widget(cb_col.number_input, 'bw', 'Halaman BW', min_value=0, value=0)
 
-            # KARTU 2: SPESIFIKASI PRODUKSI (Default ukuran: Unesco)
             with st.container(key='card_spek'):
-                st.markdown('''
-                    <div class="card-header-row">
-                        <h3 class="card-title">Spesifikasi Produksi</h3>
-                        <span class="card-action-link">Standar Offset/POD</span>
-                    </div>
-                ''', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="card-header-row">'
+                    '<h3 class="card-title">Spesifikasi Produksi</h3>'
+                    '<span class="card-action-link">Standar Offset/POD</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
 
                 size_options = list(config['prices'].keys())
-                # Pastikan Unesco menjadi pilihan default pertama
                 unesco_idx = next((i for i, s in enumerate(size_options) if 'Unesco' in s), 0)
 
                 sa, sb = st.columns(2)
@@ -899,45 +950,30 @@ with col_main:
             color_ratio_pct = int(round((color / total_pages_count) * 100)) if total_pages_count > 0 else 0
             bw_ratio_pct = 100 - color_ratio_pct if total_pages_count > 0 else 100
 
-            # KARTU KANAN ATAS: STATISTIK & RINGKASAN BIAYA (Menampilkan Diskon Isi + Diskon Finishing)
             with st.container(key='card_total'):
                 r = calculate(config, size, paper, mode, binding, qty, color, bw, override) if total_pages_count > 0 else {
                     'unit': 0, 'total': 0, 'dp': 0, 'discount': 0, 'finishing_discount': 0, 'finishing': 0, 'color_rate': 0, 'bw_rate': 0, 'full': 0
                 }
-                st.markdown(f'''
-                    <div class="card-header-row">
-                        <h3 class="card-title">Statistik & Ringkasan Biaya</h3>
-                        <span class="card-action-link">{size.split()[0]} • {paper}</span>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.52); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 1rem 1rem; margin-bottom: 0.9rem;">
-                        <div class="stat-bar-track">
-                            <div class="stat-bar-fill-teal" style="width: {bw_ratio_pct}%;"></div>
-                            <div class="stat-bar-fill-pink" style="width: {color_ratio_pct}%;"></div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; gap: 4px;">
-                            <div>
-                                <div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">TOTAL HAL</div>
-                                <div style="font-size: 0.98rem; font-weight: 700; color: #162627;">{total_pages_count}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">HITAM PUTIH</div>
-                                <div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{bw}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">WARNA</div>
-                                <div style="font-size: 0.98rem; font-weight: 700; color: #e25c86;">{color}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">DISKON ISI</div>
-                                <div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{r['discount']}%</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">DISK. FINISH</div>
-                                <div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{r['finishing_discount']}%</div>
-                            </div>
-                        </div>
-                    </div>
-                ''', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="card-header-row">'
+                    f'<h3 class="card-title">Statistik &amp; Ringkasan Biaya</h3>'
+                    f'<span class="card-action-link">{size.split()[0]} • {paper}</span>'
+                    f'</div>'
+                    f'<div style="background: rgba(255,255,255,0.52); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 1rem 1rem; margin-bottom: 0.9rem;">'
+                    f'<div class="stat-bar-track">'
+                    f'<div class="stat-bar-fill-teal" style="width: {bw_ratio_pct}%;"></div>'
+                    f'<div class="stat-bar-fill-pink" style="width: {color_ratio_pct}%;"></div>'
+                    f'</div>'
+                    f'<div style="display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; gap: 4px;">'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">TOTAL HAL</div><div style="font-size: 0.98rem; font-weight: 700; color: #162627;">{total_pages_count}</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">HITAM PUTIH</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{bw}</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">WARNA</div><div style="font-size: 0.98rem; font-weight: 700; color: #e25c86;">{color}</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">DISKON ISI</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{r["discount"]}%</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">DISK. FINISH</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{r["finishing_discount"]}%</div></div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
                 if total_pages_count > 0:
                     c_dl1, c_dl2 = st.columns(2)
@@ -975,64 +1011,20 @@ Rekening PT Literasi Nusantara Abadi Grup:
                         if bb:
                             cp2.download_button('PDF Hitam Putih', bb, f'{title}_BW.pdf', 'application/pdf', use_container_width=True)
 
-            # 4 STAT CARDS KANAN
             svg_pie = icon_svg('<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>', '#ffffff', 24)
             svg_tag = icon_svg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '#ffffff', 24)
             svg_wallet = icon_svg('<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>', '#ffffff', 24)
             svg_star = icon_svg('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>', '#ffffff', 24)
 
-            st.markdown(f'''
-                <div class="stat-grid-4">
-                    <div class="stat-glass-box">
-                        <div class="stat-badge purple">{svg_pie}</div>
-                        <div class="stat-meta">
-                            <span class="stat-meta-label">RASIO WARNA</span>
-                            <span class="stat-meta-val">{color_ratio_pct}%</span>
-                        </div>
-                    </div>
-                    <div class="stat-glass-box">
-                        <div class="stat-badge pink">{svg_tag}</div>
-                        <div class="stat-meta">
-                            <span class="stat-meta-label">TOTAL TAGIHAN</span>
-                            <span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r['total'])}</span>
-                        </div>
-                    </div>
-                    <div class="stat-glass-box">
-                        <div class="stat-badge orange">{svg_wallet}</div>
-                        <div class="stat-meta">
-                            <span class="stat-meta-label">DP ({config['dp']}%)</span>
-                            <span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r['dp'])}</span>
-                        </div>
-                    </div>
-                    <div class="stat-glass-box">
-                        <div class="stat-badge teal">{svg_star}</div>
-                        <div class="stat-meta">
-                            <span class="stat-meta-label">HARGA / EKS</span>
-                            <span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r['unit'])}</span>
-                        </div>
-                    </div>
-                </div>
-            ''', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="stat-grid-4">'
+                f'<div class="stat-glass-box"><div class="stat-badge purple">{svg_pie}</div><div class="stat-meta"><span class="stat-meta-label">RASIO WARNA</span><span class="stat-meta-val">{color_ratio_pct}%</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge pink">{svg_tag}</div><div class="stat-meta"><span class="stat-meta-label">TOTAL TAGIHAN</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["total"])}</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge orange">{svg_wallet}</div><div class="stat-meta"><span class="stat-meta-label">DP ({config["dp"]}%)</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["dp"])}</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge teal">{svg_star}</div><div class="stat-meta"><span class="stat-meta-label">HARGA / EKS</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["unit"])}</span></div></div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
-            # BANNER KANAN BAWAH (Bleed 5mm)
-            cube_graphic = '''
-            <svg width="110" height="105" viewBox="0 0 110 105" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="72" cy="24" r="18" fill="#8be23b"/>
-                <rect x="18" y="34" width="28" height="28" rx="7" transform="rotate(-18 18 34)" fill="#ffffff" fill-opacity="0.92"/>
-                <rect x="64" y="52" width="26" height="26" rx="6" transform="rotate(22 64 52)" fill="#e8f8f7"/>
-                <circle cx="48" cy="76" r="8" fill="#b469ff"/>
-                <ellipse cx="62" cy="94" rx="38" ry="8" fill="#064544" fill-opacity="0.55"/>
-            </svg>
-            '''
-            st.markdown(f'''
-                <div class="training-banner">
-                    <div style="max-width: 66%;">
-                        <div class="sub">DON'T FORGET</div>
-                        <h4>Siapkan pracetak & cek bleed 5mm</h4>
-                        <span class="banner-pill-btn">Standar Produksi Litnus</span>
-                    </div>
-                    <div style="flex-shrink: 0;">
-                        {cube_graphic}
-                    </div>
-                </div>
-            ''', unsafe_allow_html=True)
+            # BANNER KANAN BAWAH (Bebas bug </div>)
+            st.markdown(render_training_banner("DON'T FORGET"), unsafe_allow_html=True)
