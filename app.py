@@ -603,14 +603,14 @@ def go_to(page):
     st.session_state['workspace'] = page
 
 
-def draft_widget(widget, field, label, **kwargs):
+def draft_widget(widget, field, label, *args, **kwargs):
     stored = f'draft:{method}:{field}'
     key = f'widget:{stored}'
     if key not in st.session_state and stored in st.session_state:
         st.session_state[key] = st.session_state[stored]
         kwargs.pop('value', None)
         kwargs.pop('index', None)
-    value = widget(label, key=key, **kwargs)
+    value = widget(label, *args, key=key, **kwargs)
     st.session_state[stored] = value
     return value
 
@@ -673,7 +673,6 @@ if 'anon_name' not in st.session_state:
     st.session_state['anon_name'] = 'Tamu Studio'
 
 screen = st.session_state.setdefault('workspace', 'Admin Tarif' if logged_in else 'Kalkulator Cepat')
-# Sembunyikan akses Admin Tarif jika dalam mode Tamu/Anonim
 if not logged_in and screen == 'Admin Tarif':
     screen = 'Kalkulator Cepat'
     st.session_state['workspace'] = 'Kalkulator Cepat'
@@ -699,7 +698,6 @@ with col_nav:
         nav_admin = st.container(key='nav_admin') if logged_in else None
 
         for page, (method_name, path) in MENU.items():
-            # Saat dalam mode Tamu/Anonim, menu "Admin Tarif" disembunyikan otomatis
             if page == 'Admin Tarif' and not logged_in:
                 continue
             active = screen == page
@@ -716,7 +714,7 @@ with col_nav:
                     use_container_width=True,
                 )
 
-        # Pojok kiri bawah sidebar: Tombol bersih Keluar / Ganti Sesi (tanpa kotak teks status tambahan)
+        # Pojok kiri bawah sidebar: Tombol bersih Keluar / Ganti Sesi
         with st.container(key='nav_session'):
             sess_active = screen == 'Ganti Sesi'
             sess_icon_color = '#ffffff' if sess_active else '#0d7a76'
@@ -824,7 +822,7 @@ with col_main:
             st.stop()
 
         # ==========================================
-        # HALAMAN 1: ADMIN TARIF (Tabel Proporsional + Scroll di Konten Kanan Saja)
+        # HALAMAN 1: ADMIN TARIF
         # ==========================================
         if screen == 'Admin Tarif':
             if not admin:
@@ -875,7 +873,6 @@ with col_main:
                     st.markdown(render_training_banner('PANDUAN PRACETAK'), unsafe_allow_html=True)
                 st.stop()
 
-            # Panel Admin Saat Sudah Login (Stacking Rapi di Dalam Kontainer Kanan)
             if not configured:
                 st.info('Hubungkan database PostgreSQL di secrets.toml untuk menyimpan perubahan tarif.')
                 st.stop()
@@ -983,7 +980,7 @@ with col_main:
             selection = ''
             force = False
             sensitivity = 25
-            pct = 0.1
+            pct = 0.10
             run_analysis_clicked = False
 
             with st.container(key='card_naskah'):
@@ -1014,13 +1011,38 @@ with col_main:
                         st.caption(f'📄 Berkas aktif: **{uploaded[0]}**')
                         st.button('Lepas PDF', key=f'remove:{method}', on_click=remove_pdf, args=(upload_key, pdf_key, method))
 
-                    # Parameter deteksi warna, slider sensitivitas & tombol Jalankan Analisis PDF
-                    # diletakkan langsung di dalam kartu Naskah & Halaman (tepat di bawah area upload)
+                    # Adopsi Parameter Deteksi Warna dari app (1).py langsung di dalam kartu Naskah & Halaman
                     if method == 'Analisis warna otomatis':
-                        force = draft_widget(st.checkbox, 'force_bw', 'Konversi semua halaman ke BW')
+                        st.markdown(
+                            '<div style="font-size: 0.84rem; font-weight: 700; color: #0d7a76; margin: 0.55rem 0 0.35rem 0;">'
+                            '🎨 Parameter Deteksi Warna</div>',
+                            unsafe_allow_html=True,
+                        )
+                        force = draft_widget(
+                            st.checkbox,
+                            'force_bw',
+                            'Paksa SEMUA Halaman Menjadi BW',
+                            value=False,
+                        )
                         sc1, sc2 = st.columns(2)
-                        sensitivity = draft_widget(sc1.slider, 'sensitivity', 'Sensitivitas kontras RGB', 5, 50, 25)
-                        pct = draft_widget(sc2.slider, 'pct', 'Batas piksel warna (%)', 0.01, 5.0, 0.1)
+                        sensitivity = draft_widget(
+                            sc1.slider,
+                            'sensitivity',
+                            'Batas Kontras Warna',
+                            min_value=5,
+                            max_value=50,
+                            value=25,
+                            step=5,
+                        )
+                        pct = draft_widget(
+                            sc2.slider,
+                            'pct',
+                            'Batas Minimum Area Warna (%)',
+                            min_value=0.01,
+                            max_value=5.00,
+                            value=0.10,
+                            step=0.05,
+                        )
                         run_analysis_clicked = st.button(
                             'Jalankan Analisis PDF',
                             type='primary',
@@ -1029,11 +1051,17 @@ with col_main:
                         )
                     elif method == 'Pilih halaman manual':
                         roman = draft_widget(
-                            st.number_input, 'roman', 'Jumlah halaman preliminaries (Romawi)',
-                            min_value=0, value=0, step=1,
+                            st.number_input,
+                            'roman',
+                            'Jumlah halaman preliminaries (Romawi)',
+                            min_value=0,
+                            value=0,
+                            step=1,
                         )
                         selection = draft_widget(
-                            st.text_area, 'selection', 'Daftar halaman warna',
+                            st.text_area,
+                            'selection',
+                            'Daftar halaman warna',
                             placeholder='Contoh: iii-v, 1, 5-9',
                         )
                 else:
@@ -1076,15 +1104,22 @@ with col_main:
                         total = get_pdf_page_count(data)
                         st.caption(f'Total terdeteksi: **{total} halaman PDF**')
                         if method == 'Analisis warna otomatis':
+                            file_hash = hashlib.sha256(data).hexdigest()
+                            current_sig = (file_hash, mode, force, sensitivity, pct)
+                            saved = st.session_state.get('analysis')
+
                             if run_analysis_clicked:
                                 with st.spinner('Memindai spektrum halaman...'):
                                     st.session_state['analysis'] = (
-                                        hashlib.sha256(data).hexdigest(), mode, force, sensitivity, pct,
+                                        *current_sig,
                                         process_and_split_pdf(data, force, sensitivity, pct, mode, total),
                                     )
-                            saved = st.session_state.get('analysis')
-                            if saved and saved[:5] == (hashlib.sha256(data).hexdigest(), mode, force, sensitivity, pct):
-                                colors, blacks, cb, bb, _ = saved[5]
+                                saved = st.session_state.get('analysis')
+
+                            if saved and saved[:5] == current_sig:
+                                colors, blacks, cb, bb, raw_color_pages = saved[5]
+                                if mode == 'Duplex (Bolak-balik)' and raw_color_pages and set(raw_color_pages) != set(colors):
+                                    st.success('🔄 Duplex aktif: halaman pasangan otomatis ikut dimasukkan ke hasil warna.')
                             else:
                                 st.info('Tekan tombol "Jalankan Analisis PDF" pada kartu Naskah & Halaman untuk menghitung halaman.')
                                 colors, blacks = [], []
@@ -1195,5 +1230,5 @@ Rekening PT Literasi Nusantara Abadi Grup:
                 unsafe_allow_html=True,
             )
 
-            # BANNER KANAN BAWAH (Bebas bug </div>)
+            # BANNER KANAN BAWAH
             st.markdown(render_training_banner("DON'T FORGET"), unsafe_allow_html=True)
