@@ -74,18 +74,62 @@ def validate(d):
     if len(set(mins)) != len(mins):
         raise ValueError('Minimum jumlah tidak boleh duplikat.')
 
-def calculate(d, size, paper, mode, binding, qty, color, bw, override=None):
+def calculate(
+    d,
+    size,
+    paper,
+    mode,
+    binding,
+    qty,
+    color,
+    bw,
+    override=None,
+    full_color_complexity_mode=False,
+    page_toner_pcts=None,
+    color_pages_list=None,
+):
     p = d['prices'][size]
     factor = d['simplex'] if mode == 'Simplex (Satu Sisi)' else 1
     discount = max((t['discount'] for t in sorted(d['tiers'], key=lambda t: t['minimum']) if qty >= t['minimum']), default=0)
     if override is not None:
         discount = override
+
+    # cr = Harga 100% Warna Blok (setelah diskon oplah), br = Harga Dasar BW (setelah diskon oplah)
     cr = int(int(p[paper]['warna'] * factor) * (1 - discount / 100))
     br = int(int(p[paper]['bw'] * factor) * (1 - discount / 100))
+
     f = int(p['base_finishing_soft'] * (d['hardcover'] if binding == 'Hard Cover' else 1))
     fd = min((qty // d['finishing_step']) * d['finishing_discount'], d['finishing_cap'])
     f -= int(f * fd / 100)
-    unit = color * cr + bw * br + f
+
+    total_pages = color + bw
+    avg_toner_pct = 0.0
+    toner_savings_per_book = 0
+
+    if full_color_complexity_mode and page_toner_pcts and total_pages > 0:
+        # Mode Full Colour / Kompleksitas Warna:
+        # Tiap halaman dihitung proporsional berdasarkan % toner warna yang dipakai dibanding harga 100% warna blok.
+        # Rumus per halaman: Harga_Halaman = br + (toner_pct / 100.0) * (cr - br)
+        # (Atau cr dikurangi proporsi warna yang tidak terpakai, dengan batas minimum br).
+        toner_margin_100 = max(0, cr - br)
+        content_cost = 0.0
+        toner_sum = 0.0
+
+        for pno in range(1, total_pages + 1):
+            pct = float(page_toner_pcts.get(pno, 0.0))
+            pct = max(0.0, min(100.0, pct))
+            toner_sum += pct
+            page_price = br + (pct / 100.0) * toner_margin_100
+            content_cost += page_price
+
+        content_cost_int = int(round(content_cost))
+        avg_toner_pct = round(toner_sum / total_pages, 2)
+        full_block_content = total_pages * cr
+        toner_savings_per_book = max(0, full_block_content - content_cost_int)
+        unit = content_cost_int + f
+    else:
+        unit = color * cr + bw * br + f
+
     return dict(
         unit=unit,
         total=unit * qty,
@@ -96,4 +140,7 @@ def calculate(d, size, paper, mode, binding, qty, color, bw, override=None):
         color_rate=cr,
         bw_rate=br,
         full=((color + bw) * cr + f) * qty,
+        avg_toner_pct=avg_toner_pct,
+        toner_savings_total=toner_savings_per_book * qty,
+        toner_savings_unit=toner_savings_per_book,
     )
