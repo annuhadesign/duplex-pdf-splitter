@@ -1359,4 +1359,137 @@ with col_main:
                 if colors or blacks:
                     with toner_detail_placeholder.container():
                         with st.expander('📊 Lihat daftar sebaran nomor halaman & persentase toner warna', expanded=bool(full_color_complexity_mode)):
-                            if page_toner_
+                            if page_toner_pcts and colors:
+                                all_toner_items = ', '.join(
+                                    f'<b>Hlm {p}:</b> {page_toner_pcts.get(p, 0.0):.1f}%'
+                                    for p in colors
+                                )
+                                st.markdown(
+                                    f'<div style="font-size:0.8rem; font-weight:700; color:#0d7a76;">'
+                                    f'Rincian Cakupan Warna Seluruh Halaman (1 s/d {len(colors)}):</div>'
+                                    f'<div class="toner-scroll-box">{all_toner_items}</div>',
+                                    unsafe_allow_html=True,
+                                )
+                            st.write('**Halaman Warna:**', ', '.join(map(str, colors)) or 'Tidak ada')
+                            st.write('**Halaman Hitam Putih:**', ', '.join(map(str, blacks)) or 'Tidak ada')
+
+        with col_right:
+            total_pages_count = color + bw
+            color_ratio_pct = int(round((color / total_pages_count) * 100)) if total_pages_count > 0 else 0
+            bw_ratio_pct = 100 - color_ratio_pct if total_pages_count > 0 else 100
+
+            with st.container(key='card_total'):
+                r = calculate_with_toner_complexity(
+                    config,
+                    size,
+                    paper,
+                    mode,
+                    binding,
+                    qty,
+                    color,
+                    bw,
+                    override=override,
+                    full_color_complexity_mode=full_color_complexity_mode,
+                    page_toner_pcts=page_toner_pcts,
+                ) if total_pages_count > 0 else {
+                    'unit': 0, 'total': 0, 'dp': 0, 'discount': 0, 'finishing_discount': 0,
+                    'finishing': 0, 'color_rate': 0, 'bw_rate': 0, 'full': 0,
+                    'avg_toner_pct': 0.0, 'toner_savings_total': 0, 'toner_savings_unit': 0, 'avg_page_rate': 0,
+                }
+
+                st.markdown(
+                    f'<div class="card-header-row">'
+                    f'<h3 class="card-title">Statistik &amp; Ringkasan Biaya</h3>'
+                    f'<span class="card-action-link">{size.split()[0]} • {paper}</span>'
+                    f'</div>'
+                    f'<div style="background: rgba(255,255,255,0.52); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 1rem 1rem; margin-bottom: 0.9rem;">'
+                    f'<div class="stat-bar-track">'
+                    f'<div class="stat-bar-fill-teal" style="width: {bw_ratio_pct}%;"></div>'
+                    f'<div class="stat-bar-fill-pink" style="width: {color_ratio_pct}%;"></div>'
+                    f'</div>'
+                    f'<div style="display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; gap: 4px;">'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">TOTAL HAL</div><div style="font-size: 0.98rem; font-weight: 700; color: #162627;">{total_pages_count}</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">HITAM PUTIH</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{bw}</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">WARNA</div><div style="font-size: 0.98rem; font-weight: 700; color: #e25c86;">{color}</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">DISKON ISI</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{r["discount"]}%</div></div>'
+                    f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">DISK. FINISH</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{r["finishing_discount"]}%</div></div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+                if full_color_complexity_mode and total_pages_count > 0:
+                    st.markdown(
+                        f'<div style="background: rgba(13, 122, 118, 0.10); border: 1px solid rgba(13, 122, 118, 0.25); '
+                        f'border-radius: 14px; padding: 0.75rem 0.95rem; margin-bottom: 0.85rem; font-size: 0.8rem; color: #0b5855; line-height: 1.55;">'
+                        f'🎨 <b>Auto-Detect Full Colour Aktif:</b> Rata-rata cakupan warna <b>{r["avg_toner_pct"]}%</b>/hlm • '
+                        f'Tarif efektif rata-rata <b>{rp(r["avg_page_rate"])}/hlm</b> (dari tarif blok 100% {rp(r["color_rate"])}/hlm) • '
+                        f'Hemat <b>{rp(r["toner_savings_unit"])}/eks</b> (Total hemat <b>{rp(r["toner_savings_total"])}</b>)'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                if total_pages_count > 0:
+                    c_dl1, c_dl2 = st.columns(2)
+                    toner_note = (
+                        f"\nMode Full Colour Proporsional: Rata-rata cakupan warna {r['avg_toner_pct']}% | Tarif efektif {rp(r['avg_page_rate'])}/hlm (Hemat {rp(r['toner_savings_total'])})"
+                        if full_color_complexity_mode else ""
+                    )
+                    receipt = f"""LITNUS PRINTING - ESTIMASI BIAYA
+Judul: {title}
+Tarif versi: {version}
+Spesifikasi: {size} | {paper} | {mode} | {binding}
+Isi buku: {color} halaman warna + {bw} BW{toner_note}
+Jumlah: {qty} eksemplar
+Harga/eks: {rp(r['unit'])}
+Total: {rp(r['total'])}
+DP {config['dp']}%: {rp(r['dp'])}
+Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%"""
+                    c_dl1.download_button('Unduh Estimasi', receipt, f'Estimasi_{title}.txt', 'text/plain', use_container_width=True)
+
+                    invoice = f"""LITNUS PRINTING - NOTA TAGIHAN CETAK
+Pemesan: {user_full_name}
+Judul buku: {title}
+Spesifikasi: {size} | {paper} | {mode} | {binding}
+Isi buku: {color} halaman warna + {bw} halaman hitam putih ({qty} eksemplar){toner_note}
+Harga per eksemplar: {rp(r['unit'])}
+Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%
+TOTAL TAGIHAN: {rp(r['total'])}
+DP {config['dp']}%: {rp(r['dp'])} | Sisa: {rp(r['total'] - r['dp'])}
+
+Rekening PT Literasi Nusantara Abadi Grup:
+- Mandiri: 144-00-2306065-7
+- BCA: 117-737-3737"""
+                    c_dl2.download_button('Unduh Nota TXT', invoice, f'Nota_{title}.txt', 'text/plain; charset=utf-8', use_container_width=True)
+
+                    if cb or bb:
+                        cp1, cp2 = st.columns(2)
+                        if cb:
+                            with cp1:
+                                with st.container(key='dl_pdf_color'):
+                                    st.download_button('PDF Warna', cb, f'{title}_Warna.pdf', 'application/pdf', use_container_width=True)
+                        if bb:
+                            with cp2:
+                                with st.container(key='dl_pdf_bw'):
+                                    st.download_button('PDF Hitam Putih', bb, f'{title}_BW.pdf', 'application/pdf', use_container_width=True)
+
+            svg_pie = icon_svg('<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>', '#ffffff', 24)
+            svg_tag = icon_svg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '#ffffff', 24)
+            svg_wallet = icon_svg('<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>', '#ffffff', 24)
+            svg_star = icon_svg('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>', '#ffffff', 24)
+
+            stat_label_1 = 'CAKUPAN WARNA' if full_color_complexity_mode else 'RASIO WARNA'
+            stat_val_1 = f'{r["avg_toner_pct"]}%' if full_color_complexity_mode else f'{color_ratio_pct}%'
+
+            st.markdown(
+                f'<div class="stat-grid-4">'
+                f'<div class="stat-glass-box"><div class="stat-badge purple">{svg_pie}</div><div class="stat-meta"><span class="stat-meta-label">{stat_label_1}</span><span class="stat-meta-val">{stat_val_1}</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge pink">{svg_tag}</div><div class="stat-meta"><span class="stat-meta-label">TOTAL TAGIHAN</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["total"])}</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge orange">{svg_wallet}</div><div class="stat-meta"><span class="stat-meta-label">DP ({config["dp"]}%)</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["dp"])}</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge teal">{svg_star}</div><div class="stat-meta"><span class="stat-meta-label">HARGA / EKS</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["unit"])}</span></div></div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            # BANNER KANAN BAWAH
+            st.markdown(render_training_banner("DON'T FORGET"), unsafe_allow_html=True)
