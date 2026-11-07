@@ -27,3 +27,11 @@ Sidebar menyediakan Kalkulator Cepat, Deteksi Warna PDF, Pilah Halaman PDF, dan 
 Setiap menu menyimpan draf sendiri selama sesi Streamlit aktif. Draf dan unggahan tidak ditulis ke Neon. Sesi baru, tab baru, penyegaran browser, dan proses masuk/keluar dapat mereset draf. Tarif tersimpan di Neon dan dipakai bersama. Tema terang menggunakan mint dan teal. Tema gelap tersedia lewat menu Theme Streamlit. Bilah judul PWA dikendalikan browser.
 
 Sesudah deploy, masukkan judul dan jumlah halaman di Kalkulator Cepat. Pindah ke Pilah Halaman PDF, masukkan preliminaries dan unggah PDF, lalu kembali ke kedua menu untuk mengecek drafnya. Cek unduhan nota dan masuk ke Admin Tarif dengan akun Google yang sudah terdaftar. Uji juga satu jendela privat untuk memastikan akses tamu dapat menghitung dan halaman tarif meminta login.
+
+## Pembaruan v1.1.1
+
+Revisi audit UI. Sidebar memisahkan alat produksi dari Admin Tarif. Menu aktif memakai teal tua dengan teks putih, dan warna ikon menyesuaikan tema. Halaman masuk memakai satu kartu biru yang menampung kedua tindakan, tanpa banner dashboard. Palet dashboard memakai mint dan teal dengan gradien yang lebih tipis.
+
+Untuk memperbarui v1.1.0, ekstrak ZIP lalu unggah app.py dan README.md ke halaman utama repositori. Commit ke main. File tema dan Secrets yang sudah terpasang tetap dapat dipakai.
+
+Pemeriksaan lokal Streamlit lulus untuk draf lintas menu, PDF manual, lepas PDF, nota, dan akses tamu. Pemeriksaan visual otomatis tertahan karena Chromium lokal gagal membuka socket. Setelah memasang, periksa Admin Tarif sebelum login pada tema terang dan gelap serta lebar ponsel. Pastikan tombol Google dan Lanjut tanpa login berada di dalam kartu, ikon terbaca, dan ketiga alat produksi dapat dibuka. Login Google nyata perlu dicek di deployment.

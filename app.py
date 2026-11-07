@@ -10,29 +10,40 @@ from settings import DEFAULT, setup, read, save, calculate, validate
 st.set_page_config(page_title='Litnus • Studio Cetak',page_icon='📚',layout='wide')
 st.markdown('''<style>
 .block-container { max-width: 1200px; padding-top: 5rem; }
-.stApp { background-image: radial-gradient(ellipse at 100% 0%, #a69dd46b, transparent 48%),
-    radial-gradient(ellipse at 0% 0%, #72b6ad6b, transparent 65%); }
+.stApp { background-image: radial-gradient(ellipse at 0% 0%, #46b3a91e, transparent 65%); }
 [data-testid="stSidebar"] { border-right: 1px solid #75a9a64d; }
-[data-testid="stSidebar"] button { min-height: 44px; text-align: left; justify-content: flex-start; }
-[data-testid="stSidebar"] button img { width: 18px; height: 18px; vertical-align: middle; }
-[data-testid="stSidebar"] button[kind="primary"] img { filter: brightness(0) invert(1); }
+.st-key-workspace_nav button, .st-key-admin_nav button {
+    min-height: 44px; justify-content: flex-start; text-align: left;
+    border-color: transparent; background: transparent;
+}
+.st-key-workspace_nav button:hover, .st-key-admin_nav button:hover { border-color: currentColor; }
+.st-key-workspace_nav button[kind="primary"], .st-key-admin_nav button[kind="primary"] {
+    background: #086570; color: #fff;
+}
+.st-key-workspace_nav button img, .st-key-admin_nav button img {
+    width: 18px; height: 18px; vertical-align: middle; margin-right: .45rem;
+}
+.st-key-admin_nav { border-top: 1px solid #79a9a766; padding-top: .75rem; }
 .intro {
     padding: 26px 30px;
-    background: linear-gradient(120deg, #eaf8f656, #e9e1fa38);
-    border: 1px solid #ffffff75;
+    background: #46b3a912;
+    border: 1px solid #46b3a94d;
     border-radius: 20px;
     margin-bottom: 18px;
 }
 .intro h1 { letter-spacing: -.04em; margin: 0 0 8px; }
 .intro p { margin: 0; }
-.login-card {
-    max-width: 460px; margin: 18px auto; padding: 38px 24px; text-align: center;
-    color: #182c58; background: linear-gradient(145deg, #f3f7ff, #d7e5ff);
+.st-key-login_panel {
+    max-width: 460px; margin: 1rem auto; padding: clamp(1rem, 4vw, 2.25rem);
+    background: linear-gradient(145deg, #f3f7ff, #d7e5ff);
     border: 1px solid white; border-radius: 30px;
     box-shadow: 12px 16px 38px #28478630, inset 2px 2px 8px white;
 }
-.login-card h2 { color: #182c58; margin-top: 12px; }
+.login-card { text-align: center; color: #182c58; }
+.login-card h1 { color: #182c58; font-size: 2rem; margin: .5rem 0; }
 .st-key-google_login button { background: #2355cb; color: white; min-height: 46px; }
+.st-key-guest_login button { background: #f3f7ff; color: #182c58; border-color: #7892c7; min-height: 44px; }
+.st-key-google_login button:focus-visible, .st-key-guest_login button:focus-visible { outline: 3px solid #345bb0; outline-offset: 2px; }
 div[data-testid="stMetric"] {
     background: #eaf8f650;
     border: 1px solid #ffffff75;
@@ -44,7 +55,7 @@ div[data-testid="stMetric"] {
     .intro { padding: 18px; }
     .intro h1 { font-size: 30px; }
 }
-</style><div class="intro"><h1>Studio Cetak Litnus</h1><p>Dari naskah hingga siap produksi.</p></div>''',unsafe_allow_html=True)
+</style>''',unsafe_allow_html=True)
 
 MENU = {
     'Kalkulator Cepat': ('Jumlah halaman saja', '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h2m4 0h2m-8 4h2m4 0h2"/>'),
@@ -54,8 +65,8 @@ MENU = {
 }
 
 
-def icon_svg(path):
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#087580" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{path}</svg>'
+def icon_svg(path, color='#087580'):
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{path}</svg>'
 
 
 def go_to(page):
@@ -100,23 +111,28 @@ else: st.warning('Mode pratinjau: memakai tarif bawaan. Hubungkan database untuk
 logged_in=st.user.get('is_logged_in',False)
 admin=logged_in and st.user.get('email') in secrets.get('admin_emails',[])
 screen = st.session_state.setdefault('workspace', 'Admin Tarif' if logged_in else 'Kalkulator Cepat')
+theme = getattr(getattr(st.context, 'theme', None), 'type', None)
 with st.sidebar:
     st.title('Litnus Printing')
-    for page, (_, path) in MENU.items():
-        icon = quote(icon_svg(path), safe='')
-        st.button(
-            f'![](data:image/svg+xml,{icon}) {page}',
-            key=f'nav_{page}', type='primary' if screen == page else 'secondary',
-            on_click=go_to, args=(page,), use_container_width=True,
-        )
+    tools_nav = st.container(key='workspace_nav')
+    admin_nav = st.container(key='admin_nav')
+    for page, (method_name, path) in MENU.items():
+        active = screen == page
+        icon_color = '#ffffff' if active else ('#7edce0' if theme == 'dark' else '#086570')
+        icon = quote(icon_svg(path, icon_color), safe='')
+        with tools_nav if method_name else admin_nav:
+            st.button(
+                f'![](data:image/svg+xml,{icon}) {page}',
+                key=f'nav_{page}', type='primary' if active else 'secondary',
+                on_click=go_to, args=(page,), use_container_width=True,
+            )
     st.caption(f'Versi tarif: {version or "bawaan"}')
     if logged_in: st.button('Keluar',on_click=st.logout)
 if screen=='Admin Tarif':
     if not admin:
         badge = icon_svg(MENU['Admin Tarif'][1])
-        st.markdown(f'<div class="login-card">{badge}<h2>Ruang Admin</h2><p>Masuk untuk mengelola tarif dan diskon cetak.</p></div>', unsafe_allow_html=True)
-        _, actions, _ = st.columns([1, 2, 1])
-        with actions:
+        with st.container(key='login_panel'):
+            st.markdown(f'<div class="login-card">{badge}<h1>Ruang Admin</h1><p>Masuk untuk mengelola tarif dan diskon cetak.</p></div>', unsafe_allow_html=True)
             if logged_in:
                 st.warning('Akun ini belum terdaftar sebagai admin. Keluar untuk memakai akun lain.')
             elif 'auth' in secrets:
@@ -124,7 +140,7 @@ if screen=='Admin Tarif':
                     st.login()
             else:
                 st.info('Login belum dikonfigurasi. Ikuti README untuk mengaktifkannya.')
-            st.button('Lanjut tanpa login', on_click=go_to, args=('Kalkulator Cepat',), use_container_width=True)
+            st.button('Lanjut tanpa login', key='guest_login', on_click=go_to, args=('Kalkulator Cepat',), use_container_width=True)
         st.stop()
     st.subheader('Harga dan diskon')
     if not configured: st.info('Hubungkan database terlebih dahulu.'); st.stop()
@@ -172,6 +188,7 @@ if screen=='Admin Tarif':
     st.stop()
 
 method = MENU[screen][0]
+st.markdown('<div class="intro"><h1>Studio Cetak Litnus</h1><p>Dari naskah hingga siap produksi.</p></div>', unsafe_allow_html=True)
 heading, information = st.columns([8, 1])
 heading.header(screen)
 with information.popover('ⓘ', help='Petunjuk menu'):
