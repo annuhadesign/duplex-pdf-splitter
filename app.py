@@ -8,7 +8,28 @@ from settings import DEFAULT, setup, read, save, calculate, validate
 
 st.set_page_config(page_title='Litnus • Studio Cetak',page_icon='📚',layout='wide')
 st.markdown('''<style>
-.block-container{max-width:1200px;padding-top:2rem}h1{letter-spacing:-.04em} .intro{padding:24px 28px;background:linear-gradient(120deg,#102e65,#08162f);border:1px solid #24558a;border-radius:16px;margin-bottom:24px}.intro p{color:#b6d6f2;margin:0}.intro h1{color:#f4f8ff;margin:0 0 8px}.trail{color:#91c9ef;padding:12px 0 22px;font-size:14px}div[data-testid="stMetric"]{background:#102341;padding:18px;border-radius:12px}button:focus-visible,input:focus-visible{outline:3px solid #ffce70!important}button{min-height:44px} .stDownloadButton button{border-color:#77caff} @media(max-width:600px){.block-container{padding:1rem}.intro{padding:18px}.intro h1{font-size:30px}}
+.block-container { max-width: 1200px; padding-top: 5rem; }
+.intro {
+    padding: 26px 30px;
+    background: linear-gradient(120deg, rgba(16,185,129,.15), rgba(14,165,233,.09));
+    border: 1px solid rgba(16,185,129,.35);
+    border-radius: 20px;
+    margin-bottom: 18px;
+}
+.intro h1 { letter-spacing: -.04em; margin: 0 0 8px; }
+.intro p { margin: 0; }
+.trail { padding: 12px 0 22px; font-size: 14px; }
+div[data-testid="stMetric"] {
+    background: rgba(16,185,129,.08);
+    border: 1px solid rgba(16,185,129,.22);
+    padding: 18px;
+    border-radius: 16px;
+}
+@media (max-width: 600px) {
+    .block-container { padding-inline: 1rem; padding-top: 4.5rem; }
+    .intro { padding: 18px; }
+    .intro h1 { font-size: 30px; }
+}
 </style><div class="intro"><h1>Studio Cetak Litnus</h1><p>Dari naskah hingga siap produksi.</p></div>''',unsafe_allow_html=True)
 try:
     secrets = st.secrets.to_dict()
@@ -85,10 +106,23 @@ st.markdown('<div class="trail">01 Naskah &nbsp; / &nbsp; 02 Spesifikasi &nbsp; 
 left,right=st.columns([1.7,1],gap='large')
 with left:
     st.subheader('1. Naskah')
-    method=st.selectbox('Cara input',['Analisis warna otomatis','Pilih halaman manual','Jumlah halaman saja'])
+    method = st.radio(
+        'Cara input',
+        ['Analisis warna otomatis', 'Pilih halaman manual', 'Jumlah halaman saja'],
+        horizontal=True,
+    )
     title=st.text_input('Judul buku',value='Pesanan Litnus')
     uploaded=None; color=bw=0; cb=bb=None; colors=[]; blacks=[]
-    if method!='Jumlah halaman saja': uploaded=st.file_uploader('Unggah PDF isi buku',type='pdf')
+    if method!='Jumlah halaman saja':
+        uploaded=st.file_uploader('Unggah PDF isi buku',type='pdf')
+        if method == 'Pilih halaman manual':
+            roman = st.number_input(
+                'Jumlah halaman preliminaries',
+                min_value=0, value=12, step=1,
+                help='Hitung halaman PDF sebelum halaman isi bernomor 1. Isi 0 jika tidak ada.',
+            )
+            st.caption(f'Halaman isi 1 berada pada halaman PDF {roman + 1}.')
+            selection = st.text_area('Halaman warna', placeholder='iii-v, 1, 5-9')
     else:
         a,b=st.columns(2); color=a.number_input('Halaman warna',0,value=0); bw=b.number_input('Halaman BW',0,value=0)
     st.subheader('2. Spesifikasi')
@@ -121,9 +155,8 @@ with left:
                 if saved and saved[:5]==(hashlib.sha256(data).hexdigest(),mode,force,sensitivity,pct): colors,blacks,cb,bb,_=saved[5]
                 else: st.info('Tekan Analisis PDF untuk memperbarui hasil.'); colors=[];blacks=[]
             else:
-                roman=st.number_input('Jumlah halaman awal Romawi',0,total,min(12,total))
-                selection=st.text_area('Halaman warna','',placeholder='iii-v, 1, 5-9')
-                st.caption(f'Arab 1 = PDF {roman+1}. Nomor Romawi mengikuti urutan PDF.')
+                if roman > total:
+                    raise ValueError(f'Jumlah preliminaries melebihi {total} halaman PDF.')
                 pair=st.checkbox('Sertakan pasangan duplex',value=True,disabled=mode.startswith('Simplex'))
                 colors,_,errors,_=parse_page_input(selection,total,roman)
                 if errors: st.error(' • '.join(errors)); st.stop()
