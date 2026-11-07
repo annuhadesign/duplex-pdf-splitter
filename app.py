@@ -14,7 +14,7 @@ from engine import (
 from settings import DEFAULT, setup, read, save, calculate, validate, connect
 
 st.set_page_config(
-    page_title='LitnusPro • Studio Cetak',
+    page_title='LitnusPro • Studio Cetak v1.2.3',
     page_icon='📚',
     layout='wide',
     initial_sidebar_state='collapsed',
@@ -111,13 +111,15 @@ header[data-testid="stHeader"] {
 
 /* Kolom Kiri (Sidebar In-Canvas): TETAP DIAM (Fixed di dalam Canvas) */
 .st-key-canvas_sidebar {
-    padding: 2.2rem 1.35rem 2rem 2rem !important;
+    padding: 2.2rem 1.35rem 1.65rem 2rem !important;
     border-right: 1.5px solid rgba(255, 255, 255, 0.65);
     height: calc(100vh - 3.2rem) !important;
     max-height: 900px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     scrollbar-width: none;
+    display: flex !important;
+    flex-direction: column !important;
 }
 .st-key-canvas_sidebar::-webkit-scrollbar {
     display: none;
@@ -131,9 +133,11 @@ header[data-testid="stHeader"] {
     overflow-y: auto !important;
     overflow-x: hidden !important;
     scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: #0d7a76 rgba(255, 255, 255, 0.25);
 }
 
-/* Custom Scrollbar Halus untuk Konten Kanan */
+/* Custom Scrollbar Hijau Teal (#0d7a76) untuk Konten Kanan */
 .st-key-canvas_main::-webkit-scrollbar {
     width: 7px;
 }
@@ -143,11 +147,11 @@ header[data-testid="stHeader"] {
     margin: 18px 0;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb {
-    background: rgba(13, 122, 118, 0.28);
+    background: #0d7a76;
     border-radius: 99px;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb:hover {
-    background: rgba(13, 122, 118, 0.5);
+    background: #095d5c;
 }
 
 /* Brand Logo "LitnusPro" Diperbesar + Pro warna hijau teal senada menu */
@@ -168,8 +172,8 @@ header[data-testid="stHeader"] {
 }
 
 /* Tombol Menu Navigasi Kiri: RATA KIRI, ICON SVG 2X UKURAN HURUF (30px vs 15px) */
-.st-key-nav_menu button, .st-key-nav_admin button {
-    min-height: 56px !important;
+.st-key-nav_menu button, .st-key-nav_admin button, .st-key-nav_session button {
+    min-height: 54px !important;
     width: 100% !important;
     display: flex !important;
     justify-content: flex-start !important;
@@ -187,7 +191,7 @@ header[data-testid="stHeader"] {
     margin-bottom: 0.4rem !important;
 }
 
-.st-key-nav_menu button > div, .st-key-nav_admin button > div {
+.st-key-nav_menu button > div, .st-key-nav_admin button > div, .st-key-nav_session button > div {
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
@@ -195,7 +199,7 @@ header[data-testid="stHeader"] {
     gap: 12px !important;
 }
 
-.st-key-nav_menu button p, .st-key-nav_admin button p {
+.st-key-nav_menu button p, .st-key-nav_admin button p, .st-key-nav_session button p {
     font-size: 0.95rem !important;
     font-weight: 600 !important;
     margin: 0 !important;
@@ -206,7 +210,7 @@ header[data-testid="stHeader"] {
 }
 
 /* Tinggi Icon SVG 2x ukuran huruf di sampingnya (30px = 2 x 15px) */
-.st-key-nav_menu button img, .st-key-nav_admin button img {
+.st-key-nav_menu button img, .st-key-nav_admin button img, .st-key-nav_session button img {
     width: 30px !important;
     height: 30px !important;
     margin-right: 12px !important;
@@ -214,37 +218,39 @@ header[data-testid="stHeader"] {
     flex-shrink: 0 !important;
 }
 
-.st-key-nav_menu button:hover, .st-key-nav_admin button:hover {
+.st-key-nav_menu button:hover, .st-key-nav_admin button:hover, .st-key-nav_session button:hover {
     background: rgba(255, 255, 255, 0.52) !important;
     color: #065a57 !important;
 }
 
 /* Menu Aktif: Pill Teal Gradien */
-.st-key-nav_menu button[kind="primary"], .st-key-nav_admin button[kind="primary"] {
+.st-key-nav_menu button[kind="primary"], .st-key-nav_admin button[kind="primary"], .st-key-nav_session button[kind="primary"] {
     background: linear-gradient(95deg, #0b6e6d 0%, #178d89 100%) !important;
     color: #ffffff !important;
     font-weight: 600 !important;
     box-shadow: 0 10px 22px -6px rgba(11, 110, 109, 0.42) !important;
 }
 
-.st-key-nav_menu button[kind="primary"] p, .st-key-nav_admin button[kind="primary"] p {
+.st-key-nav_menu button[kind="primary"] p, .st-key-nav_admin button[kind="primary"] p, .st-key-nav_session button[kind="primary"] p {
     color: #ffffff !important;
     font-weight: 600 !important;
 }
 
 .st-key-nav_admin {
-    margin-top: 1.1rem;
-    padding-top: 1rem;
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
     border-top: 1px solid rgba(13, 122, 118, 0.15);
 }
 
-/* Panel Identitas / Login Anonim di Sidebar */
-.st-key-guest_box {
-    margin-top: 1.2rem;
-    padding: 0.95rem 1rem !important;
-    background: rgba(255, 255, 255, 0.48) !important;
-    border: 1px solid rgba(255, 255, 255, 0.78) !important;
-    border-radius: 18px !important;
+/* Tombol Bersih Keluar / Ganti Sesi di Pojok Kiri Bawah Sidebar */
+.st-key-nav_session {
+    margin-top: auto !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid rgba(13, 122, 118, 0.15);
+}
+.st-key-nav_session button {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 1px solid rgba(13, 122, 118, 0.22) !important;
 }
 
 /* Topbar: Welcome Back (Nama Lengkap) di Kiri & User Profile di Kanan Atas */
@@ -322,7 +328,9 @@ header[data-testid="stHeader"] {
 .st-key-card_admin_info,
 .st-key-card_admin_panel,
 .st-key-card_admin_tiers,
-.st-key-card_admin_save {
+.st-key-card_admin_save,
+.st-key-card_session_google,
+.st-key-card_session_guest {
     background: rgba(238, 247, 245, 0.72) !important;
     border: 1.5px solid rgba(255, 255, 255, 0.82) !important;
     border-radius: 24px !important;
@@ -363,6 +371,25 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     background-color: rgba(255, 255, 255, 0.68) !important;
     border: 1.5px dashed rgba(14, 124, 119, 0.38) !important;
     border-radius: 16px !important;
+}
+
+/* Aksen Hijau Khas Menu Utama (#0d7a76) pada Kotak Input Judul Buku & Jumlah Cetak */
+.st-key-accent_title div[data-baseweb="input"],
+.st-key-accent_qty div[data-baseweb="input"] {
+    background: linear-gradient(95deg, rgba(13, 122, 118, 0.12) 0%, rgba(23, 141, 137, 0.08) 100%) !important;
+    border: 2px solid #0d7a76 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 12px rgba(13, 122, 118, 0.10) !important;
+}
+.st-key-accent_title input,
+.st-key-accent_qty input {
+    color: #084c49 !important;
+    font-weight: 700 !important;
+}
+.st-key-accent_title label p,
+.st-key-accent_qty label p {
+    color: #0d7a76 !important;
+    font-weight: 700 !important;
 }
 
 /* 4 Stat Cards Kanan */
@@ -477,7 +504,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     border-radius: 99px;
 }
 
-/* Tombol Aksi & Download */
+/* Tombol Aksi & Download Umum */
 .stDownloadButton button, .stButton button {
     border-radius: 14px !important;
     font-weight: 600 !important;
@@ -491,6 +518,38 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 .stDownloadButton button:hover {
     background: #ffffff !important;
     border-color: #0b625f !important;
+}
+
+/* Tombol Unduh PDF Warna (Gradien Warna-Warni Vibrant) */
+.st-key-dl_pdf_color .stDownloadButton button {
+    background: linear-gradient(135deg, #ff5e62 0%, #ff9966 32%, #f953c6 68%, #00d2ff 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 8px 18px -4px rgba(249, 83, 198, 0.38) !important;
+}
+.st-key-dl_pdf_color .stDownloadButton button p {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+.st-key-dl_pdf_color .stDownloadButton button:hover {
+    filter: brightness(1.06) !important;
+    color: #ffffff !important;
+}
+
+/* Tombol Unduh PDF Hitam Putih (Gradien Monokrom / Grayscale) */
+.st-key-dl_pdf_bw .stDownloadButton button {
+    background: linear-gradient(135deg, #1f2424 0%, #3d4647 52%, #687375 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 8px 18px -4px rgba(31, 36, 36, 0.34) !important;
+}
+.st-key-dl_pdf_bw .stDownloadButton button p {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+.st-key-dl_pdf_bw .stDownloadButton button:hover {
+    filter: brightness(1.08) !important;
+    color: #ffffff !important;
 }
 
 @media (max-width: 900px) {
@@ -556,8 +615,19 @@ def draft_widget(widget, field, label, **kwargs):
     return value
 
 
+def reset_prelim_and_selection(method_name):
+    """Wajib otomatis me-reset jumlah halaman Romawi ke 0 dan mengosongkan daftar halaman warna."""
+    for m in {method_name, 'Pilih halaman manual', 'Analisis warna otomatis'}:
+        st.session_state[f'draft:{m}:roman'] = 0
+        st.session_state[f'widget:draft:{m}:roman'] = 0
+        st.session_state[f'draft:{m}:selection'] = ''
+        st.session_state[f'widget:draft:{m}:selection'] = ''
+    st.session_state.pop('analysis', None)
+
+
 def remember_pdf(upload_key, pdf_key, method_name):
     upload = st.session_state.get(upload_key)
+    reset_prelim_and_selection(method_name)
     if upload is not None:
         st.session_state[pdf_key] = (upload.name, upload.getvalue())
         clean_title = os.path.splitext(upload.name)[0].replace('_', ' ').strip()
@@ -570,9 +640,14 @@ def remember_pdf(upload_key, pdf_key, method_name):
         st.session_state.pop(pdf_key, None)
 
 
-def remove_pdf(upload_key, pdf_key):
+def remove_pdf(upload_key, pdf_key, method_name):
     st.session_state.pop(pdf_key, None)
     st.session_state.pop(upload_key, None)
+    reset_prelim_and_selection(method_name)
+    stored_title = f'draft:{method_name}:title'
+    widget_title = f'widget:{stored_title}'
+    st.session_state[stored_title] = 'Karya Terhebat'
+    st.session_state[widget_title] = 'Karya Terhebat'
 
 
 try:
@@ -593,10 +668,15 @@ if configured:
 
 logged_in = st.user.get('is_logged_in', False)
 admin = logged_in and st.user.get('email') in secrets.get('admin_emails', [])
-screen = st.session_state.setdefault('workspace', 'Admin Tarif' if logged_in else 'Kalkulator Cepat')
 
 if 'anon_name' not in st.session_state:
     st.session_state['anon_name'] = 'Tamu Studio'
+
+screen = st.session_state.setdefault('workspace', 'Admin Tarif' if logged_in else 'Kalkulator Cepat')
+# Sembunyikan akses Admin Tarif jika dalam mode Tamu/Anonim
+if not logged_in and screen == 'Admin Tarif':
+    screen = 'Kalkulator Cepat'
+    st.session_state['workspace'] = 'Kalkulator Cepat'
 
 if logged_in:
     raw_name = st.user.get('name') or st.user.get('email', 'User').split('@')[0]
@@ -616,9 +696,12 @@ with col_nav:
         st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
 
         nav_menu = st.container(key='nav_menu')
-        nav_admin = st.container(key='nav_admin')
+        nav_admin = st.container(key='nav_admin') if logged_in else None
 
         for page, (method_name, path) in MENU.items():
+            # Saat dalam mode Tamu/Anonim, menu "Admin Tarif" disembunyikan otomatis
+            if page == 'Admin Tarif' and not logged_in:
+                continue
             active = screen == page
             icon_color = '#ffffff' if active else '#0d7a76'
             icon_uri = icon_data_uri(path, icon_color, 30)
@@ -633,29 +716,20 @@ with col_nav:
                     use_container_width=True,
                 )
 
-        with st.container(key='guest_box'):
-            if not logged_in:
-                st.markdown(
-                    '<div style="font-size: 0.74rem; font-weight: 700; color: #0d7a76; '
-                    'text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem;">'
-                    'Profil Anonim</div>',
-                    unsafe_allow_html=True,
-                )
-                new_anon = st.text_input(
-                    'Nama Tampilan',
-                    value=st.session_state['anon_name'],
-                    placeholder='Ketik nama lengkap...',
-                    label_visibility='collapsed',
-                    key='input_anon_name',
-                )
-                if new_anon.strip() != st.session_state['anon_name']:
-                    st.session_state['anon_name'] = new_anon.strip() or 'Tamu Studio'
-                    st.rerun()
-                st.caption(f'Tarif aktif: **v{version or "1"}** • Maks PDF **200MB**')
-            else:
-                st.caption(f'Login aktif: **{user_full_name}**')
-                st.caption(f'Tarif aktif: **v{version or "1"}**')
-                st.button('Keluar Akun', on_click=st.logout, use_container_width=True)
+        # Pojok kiri bawah sidebar: Tombol bersih Keluar / Ganti Sesi (tanpa kotak teks status tambahan)
+        with st.container(key='nav_session'):
+            sess_active = screen == 'Ganti Sesi'
+            sess_icon_color = '#ffffff' if sess_active else '#0d7a76'
+            sess_svg_path = '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
+            sess_uri = icon_data_uri(sess_svg_path, sess_icon_color, 30)
+            st.button(
+                f'![](data:image/svg+xml,{sess_uri}) Keluar / Ganti Sesi',
+                key='btn_switch_session',
+                type='primary' if sess_active else 'secondary',
+                on_click=go_to,
+                args=('Ganti Sesi',),
+                use_container_width=True,
+            )
 
 with col_main:
     with st.container(key='canvas_main'):
@@ -679,6 +753,75 @@ with col_main:
             f'</div>',
             unsafe_allow_html=True,
         )
+
+        # ==========================================
+        # HALAMAN 0: KELUAR / GANTI SESI (LOGIN GOOGLE VS TAMU ANONIM)
+        # ==========================================
+        if screen == 'Ganti Sesi':
+            col_sess_left, col_sess_right = st.columns(2, gap='medium')
+            with col_sess_left:
+                with st.container(key='card_session_google'):
+                    lock_svg = icon_svg(MENU['Admin Tarif'][1], '#0d7a76', 36)
+                    st.markdown(
+                        f'<div class="card-header-row">'
+                        f'<h3 class="card-title">Akun Google (Admin / Terdaftar)</h3>'
+                        f'<span class="card-action-link">Google OAuth 2.0</span>'
+                        f'</div>'
+                        f'<div style="text-align: center; padding: 1.1rem 0.5rem 1rem 0.5rem;">'
+                        f'<div style="display: inline-flex; padding: 14px; border-radius: 18px; background: rgba(13, 122, 118, 0.12); margin-bottom: 0.85rem;">'
+                        f'{lock_svg}'
+                        f'</div>'
+                        f'<h3 style="margin: 0 0 0.4rem 0; font-weight: 700; color: #152627;">Sesi Akun Google</h3>'
+                        f'<p style="margin: 0; font-size: 0.88rem; color: #4e6d6c;">'
+                        f'Masuk menggunakan akun Google untuk membuka menu Admin Tarif dan sinkronisasi database.'
+                        f'</p>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if logged_in:
+                        st.success(f'Saat ini masuk sebagai **{user_full_name}**.')
+                        if st.button('Keluar dari Akun Google', key='btn_do_google_logout', type='primary', use_container_width=True):
+                            st.logout()
+                    elif 'auth' in secrets:
+                        if st.button('Masuk dengan Akun Google', key='btn_do_google_login', type='primary', use_container_width=True):
+                            st.login()
+                    else:
+                        st.info('OAuth Google belum dikonfigurasi pada `secrets.toml`.')
+
+            with col_sess_right:
+                with st.container(key='card_session_guest'):
+                    user_svg = icon_svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', '#0d7a76', 36)
+                    st.markdown(
+                        f'<div class="card-header-row">'
+                        f'<h3 class="card-title">Mode Tamu (Anonim)</h3>'
+                        f'<span class="card-action-link">Akses Cepat Operator</span>'
+                        f'</div>'
+                        f'<div style="text-align: center; padding: 1.1rem 0.5rem 0.6rem 0.5rem;">'
+                        f'<div style="display: inline-flex; padding: 14px; border-radius: 18px; background: rgba(13, 122, 118, 0.12); margin-bottom: 0.85rem;">'
+                        f'{user_svg}'
+                        f'</div>'
+                        f'<h3 style="margin: 0 0 0.4rem 0; font-weight: 700; color: #152627;">Lanjutkan sebagai Tamu</h3>'
+                        f'<p style="margin: 0; font-size: 0.88rem; color: #4e6d6c;">'
+                        f'Gunakan kalkulator cepat dan pemisahan PDF tanpa login (menu Admin Tarif disembunyikan).'
+                        f'</p>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    new_anon = st.text_input(
+                        'Nama Lengkap / Tampilan Operator',
+                        value=st.session_state['anon_name'],
+                        placeholder='Ketik nama tampilan...',
+                        key='input_anon_session_page',
+                    )
+                    if st.button('Lanjutkan sebagai Tamu Anonim', key='btn_continue_guest', type='primary', use_container_width=True):
+                        st.session_state['anon_name'] = new_anon.strip() or 'Tamu Studio'
+                        if logged_in:
+                            st.logout()
+                        else:
+                            st.session_state['workspace'] = 'Kalkulator Cepat'
+                            st.rerun()
+            st.markdown(render_training_banner('PANDUAN PRACETAK'), unsafe_allow_html=True)
+            st.stop()
 
         # ==========================================
         # HALAMAN 1: ADMIN TARIF (Tabel Proporsional + Scroll di Konten Kanan Saja)
@@ -831,6 +974,18 @@ with col_main:
         col_left, col_right = st.columns([1.15, 1], gap='medium')
 
         with col_left:
+            uploaded = None
+            color = bw = 0
+            cb = bb = None
+            colors = []
+            blacks = []
+            roman = 0
+            selection = ''
+            force = False
+            sensitivity = 25
+            pct = 0.1
+            run_analysis_clicked = False
+
             with st.container(key='card_naskah'):
                 st.markdown(
                     f'<div class="card-header-row">'
@@ -839,12 +994,6 @@ with col_main:
                     f'</div>',
                     unsafe_allow_html=True,
                 )
-
-                uploaded = None
-                color = bw = 0
-                cb = bb = None
-                colors = []
-                blacks = []
 
                 if method != 'Jumlah halaman saja':
                     upload_key, pdf_key = f'upload:{method}', f'pdf:{method}'
@@ -857,21 +1006,39 @@ with col_main:
                     )
                     uploaded = st.session_state.get(pdf_key)
                     default_book_title = os.path.splitext(uploaded[0])[0].replace('_', ' ') if uploaded else 'Karya Terhebat'
-                    title = draft_widget(st.text_input, 'title', 'Judul buku (otomatis dari nama PDF)', value=default_book_title)
+
+                    with st.container(key='accent_title'):
+                        title = draft_widget(st.text_input, 'title', 'Judul buku (otomatis dari nama PDF)', value=default_book_title)
+
                     if uploaded:
                         st.caption(f'📄 Berkas aktif: **{uploaded[0]}**')
-                        st.button('Lepas PDF', key=f'remove:{method}', on_click=remove_pdf, args=(upload_key, pdf_key))
-                    if method == 'Pilih halaman manual':
+                        st.button('Lepas PDF', key=f'remove:{method}', on_click=remove_pdf, args=(upload_key, pdf_key, method))
+
+                    # Parameter deteksi warna, slider sensitivitas & tombol Jalankan Analisis PDF
+                    # diletakkan langsung di dalam kartu Naskah & Halaman (tepat di bawah area upload)
+                    if method == 'Analisis warna otomatis':
+                        force = draft_widget(st.checkbox, 'force_bw', 'Konversi semua halaman ke BW')
+                        sc1, sc2 = st.columns(2)
+                        sensitivity = draft_widget(sc1.slider, 'sensitivity', 'Sensitivitas kontras RGB', 5, 50, 25)
+                        pct = draft_widget(sc2.slider, 'pct', 'Batas piksel warna (%)', 0.01, 5.0, 0.1)
+                        run_analysis_clicked = st.button(
+                            'Jalankan Analisis PDF',
+                            type='primary',
+                            disabled=not uploaded,
+                            use_container_width=True,
+                        )
+                    elif method == 'Pilih halaman manual':
                         roman = draft_widget(
                             st.number_input, 'roman', 'Jumlah halaman preliminaries (Romawi)',
-                            min_value=0, value=12, step=1,
+                            min_value=0, value=0, step=1,
                         )
                         selection = draft_widget(
                             st.text_area, 'selection', 'Daftar halaman warna',
                             placeholder='Contoh: iii-v, 1, 5-9',
                         )
                 else:
-                    title = draft_widget(st.text_input, 'title', 'Judul buku', value='Karya Terhebat')
+                    with st.container(key='accent_title'):
+                        title = draft_widget(st.text_input, 'title', 'Judul buku', value='Karya Terhebat')
                     ca, cb_col = st.columns(2)
                     color = draft_widget(ca.number_input, 'color', 'Halaman warna', min_value=0, value=0)
                     bw = draft_widget(cb_col.number_input, 'bw', 'Halaman BW', min_value=0, value=0)
@@ -893,7 +1060,9 @@ with col_main:
                 paper = draft_widget(sb.selectbox, 'paper', 'Jenis kertas', options=['HVS 70', 'BP 57'])
                 mode = draft_widget(sa.selectbox, 'mode', 'Mode cetak', options=['Duplex (Bolak-balik)', 'Simplex (Satu Sisi)'])
                 binding = draft_widget(sb.selectbox, 'binding', 'Tipe jilid', options=['Soft Cover', 'Hard Cover'])
-                qty = draft_widget(st.number_input, 'qty', 'Jumlah cetak (eksemplar)', min_value=1, value=1)
+
+                with st.container(key='accent_qty'):
+                    qty = draft_widget(st.number_input, 'qty', 'Jumlah cetak (eksemplar)', min_value=1, value=1)
 
                 override = None
                 if admin:
@@ -907,11 +1076,7 @@ with col_main:
                         total = get_pdf_page_count(data)
                         st.caption(f'Total terdeteksi: **{total} halaman PDF**')
                         if method == 'Analisis warna otomatis':
-                            with st.expander('Parameter deteksi warna'):
-                                force = draft_widget(st.checkbox, 'force_bw', 'Konversi semua halaman ke BW')
-                                sensitivity = draft_widget(st.slider, 'sensitivity', 'Sensitivitas kontras RGB', 5, 50, 25)
-                                pct = draft_widget(st.slider, 'pct', 'Batas piksel warna (%)', 0.01, 5.0, 0.1)
-                            if st.button('Jalankan Analisis PDF', type='primary', use_container_width=True):
+                            if run_analysis_clicked:
                                 with st.spinner('Memindai spektrum halaman...'):
                                     st.session_state['analysis'] = (
                                         hashlib.sha256(data).hexdigest(), mode, force, sensitivity, pct,
@@ -921,7 +1086,7 @@ with col_main:
                             if saved and saved[:5] == (hashlib.sha256(data).hexdigest(), mode, force, sensitivity, pct):
                                 colors, blacks, cb, bb, _ = saved[5]
                             else:
-                                st.info('Tekan tombol "Jalankan Analisis PDF" untuk menghitung halaman.')
+                                st.info('Tekan tombol "Jalankan Analisis PDF" pada kartu Naskah & Halaman untuk menghitung halaman.')
                                 colors, blacks = [], []
                         else:
                             if roman > total:
@@ -1007,9 +1172,13 @@ Rekening PT Literasi Nusantara Abadi Grup:
                     if cb or bb:
                         cp1, cp2 = st.columns(2)
                         if cb:
-                            cp1.download_button('PDF Warna', cb, f'{title}_Warna.pdf', 'application/pdf', use_container_width=True)
+                            with cp1:
+                                with st.container(key='dl_pdf_color'):
+                                    st.download_button('PDF Warna', cb, f'{title}_Warna.pdf', 'application/pdf', use_container_width=True)
                         if bb:
-                            cp2.download_button('PDF Hitam Putih', bb, f'{title}_BW.pdf', 'application/pdf', use_container_width=True)
+                            with cp2:
+                                with st.container(key='dl_pdf_bw'):
+                                    st.download_button('PDF Hitam Putih', bb, f'{title}_BW.pdf', 'application/pdf', use_container_width=True)
 
             svg_pie = icon_svg('<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>', '#ffffff', 24)
             svg_tag = icon_svg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '#ffffff', 24)
