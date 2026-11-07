@@ -96,12 +96,10 @@ def analyze_full_color_toner_pdf(file_bytes, total_p):
             if chroma >= 12:
                 # Piksel berwarna (CMY aktif):
                 # Setiap piksel blok warna yang menutup kertas dihitung sebagai cakupan blok warna (0.85 - 1.0)
-                # ditambah bobot kepekatan warnanya agar halaman blok warna penuh mencapai ~98-100%.
                 ink_intensity = (255 - min_c) / 255.0
                 color_coverage_sum += min(1.0, 0.82 + (ink_intensity * 0.25))
             else:
-                # Piksel abu-abu/hitam (teks atau bayangan gelap di tengah ilustrasi):
-                # Jika sangat gelap (bagian dari ilustrasi gelap/teks tebal), beri bobot proporsional kecil
+                # Piksel abu-abu/hitam di tengah ilustrasi gelap
                 darkness = (255 - max_c) / 255.0
                 if darkness > 0.65:
                     color_coverage_sum += darkness * 0.15
@@ -141,7 +139,7 @@ def calculate_with_toner_complexity(
     if not full_color_complexity_mode or not page_toner_pcts or total_pages <= 0:
         return base_res
 
-    cr = base_res['color_rate']   # Harga 100% warna blok per halaman (setelah diskon oplah & faktor simplex)
+    cr = base_res['color_rate']   # Harga 100% warna blok per halaman
     br = base_res['bw_rate']      # Harga dasar BW per halaman
     f = base_res['finishing']     # Biaya jilid per buku
 
@@ -180,7 +178,7 @@ def calculate_with_toner_complexity(
 
 
 # ==========================================
-# CSS TEMA FLOATING CANVAS (LOCKED FRAME, INTERNAL RIGHT SCROLL RAPI DI DALAM CONTAINER)
+# CSS TEMA FLOATING CANVAS (SCROLL KANAN AKTIF & RAPI DI DALAM CONTAINER)
 # ==========================================
 st.markdown('''<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
@@ -221,7 +219,7 @@ header[data-testid="stHeader"] {
     max-height: 900px !important;
     min-height: 680px !important;
     margin: 1.6rem auto !important;
-    padding: 0 !important;
+    padding: 0 6px 0 0 !important;
     background: linear-gradient(125deg, rgba(232, 244, 242, 0.96) 0%, rgba(220, 238, 236, 0.93) 65%, rgba(232, 230, 245, 0.93) 100%) !important;
     border: 2.5px solid rgba(255, 255, 255, 0.88) !important;
     border-radius: 34px !important;
@@ -230,49 +228,40 @@ header[data-testid="stHeader"] {
         0 10px 22px rgba(18, 52, 56, 0.06),
         inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
     overflow: hidden !important;
-    clip-path: inset(0 round 34px) !important;
 }
 
-/* Kolom Kiri (Sidebar In-Canvas): Dikunci tingginya & menggunakan Space-Between agar Tombol Sesi di Dasar Kiri Bawah */
+/* Kolom Kiri (Sidebar In-Canvas): TETAP DIAM & Tombol Sesi di Dasar Kiri Bawah */
 .st-key-canvas_sidebar {
+    position: relative !important;
     padding: 2.2rem 1.35rem 1.6rem 2rem !important;
     border-right: 1.5px solid rgba(255, 255, 255, 0.65);
     height: calc(100vh - 3.2rem) !important;
     max-height: 900px !important;
     min-height: 680px !important;
     overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
     box-sizing: border-box !important;
 }
-.st-key-canvas_sidebar > div[data-testid="stVerticalBlock"] {
-    height: 100% !important;
-    min-height: calc(min(100vh - 3.2rem, 900px) - 3.8rem) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-}
 
-/* Kolom Kanan (Main Workspace): Beri jarak atas-bawah & kanan agar scrollbar TIDAK keluar dari lengkungan sudut 34px */
+/* Kolom Kanan (Main Workspace): BISA DIGULIR PENUH TANPA TERTAHAN */
 .st-key-canvas_main {
-    padding: 1.5rem 1.9rem 2.2rem 1.8rem !important;
-    margin: 14px 8px 14px 0 !important;
-    height: calc(min(100vh - 3.2rem, 900px) - 28px) !important;
+    padding: 2rem 2rem 3.5rem 1.8rem !important;
+    height: calc(100vh - 3.2rem) !important;
+    max-height: 900px !important;
+    min-height: 680px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     scroll-behavior: smooth;
     box-sizing: border-box !important;
 }
 
-/* Custom Scrollbar Hijau Teal (#0d7a76) Rapi di Dalam Container */
+/* Custom Scrollbar Hijau Teal (#0d7a76) dengan margin atas-bawah 28px agar tidak keluar sudut melengkung */
 .st-key-canvas_main::-webkit-scrollbar {
-    width: 6px;
+    width: 7px;
 }
 .st-key-canvas_main::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.28);
     border-radius: 99px;
-    margin: 16px 0;
+    margin: 28px 0;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb {
     background: #0d7a76;
@@ -371,7 +360,10 @@ header[data-testid="stHeader"] {
 
 /* Tombol Keluar / Ganti Sesi di Dasar Pojok Kiri Bawah */
 .st-key-nav_session {
-    margin-top: auto !important;
+    position: absolute !important;
+    bottom: 1.6rem !important;
+    left: 2rem !important;
+    right: 1.35rem !important;
     padding-top: 0.9rem !important;
     border-top: 1px solid rgba(13, 122, 118, 0.16);
 }
@@ -522,16 +514,23 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 
 /* Kotak Scroll Rapi untuk Daftar Sebaran Halaman & Persentase Toner */
 .toner-scroll-box {
-    max-height: 220px;
+    max-height: 240px;
     overflow-y: auto;
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px solid rgba(13, 122, 118, 0.18);
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(13, 122, 118, 0.22);
     border-radius: 12px;
-    padding: 0.65rem 0.85rem;
+    padding: 0.7rem 0.9rem;
     font-size: 0.78rem;
-    line-height: 1.65;
+    line-height: 1.7;
     color: #1c3d3b;
     margin-top: 0.4rem;
+}
+.toner-scroll-box::-webkit-scrollbar {
+    width: 6px;
+}
+.toner-scroll-box::-webkit-scrollbar-thumb {
+    background: #0d7a76;
+    border-radius: 99px;
 }
 
 /* 4 Stat Cards Kanan */
@@ -705,7 +704,6 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         margin: 0.5rem !important;
         border-radius: 22px !important;
         overflow: visible !important;
-        clip-path: none !important;
     }
     .st-key-canvas_sidebar {
         height: auto !important;
@@ -715,13 +713,14 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         border-bottom: 1px solid rgba(255, 255, 255, 0.5);
         padding: 1.4rem !important;
     }
-    .st-key-canvas_sidebar > div[data-testid="stVerticalBlock"] {
-        min-height: 0 !important;
+    .st-key-nav_session {
+        position: static !important;
+        margin-top: 1.2rem !important;
     }
     .st-key-canvas_main {
         height: auto !important;
         max-height: none !important;
-        margin: 0 !important;
+        min-height: 0 !important;
         padding: 1.4rem !important;
     }
 }
@@ -840,28 +839,27 @@ col_nav, col_main = st.columns([0.24, 0.76], gap='small')
 
 with col_nav:
     with st.container(key='canvas_sidebar'):
-        with st.container(key='sidebar_top_group'):
-            st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
 
-            nav_menu = st.container(key='nav_menu')
-            nav_admin = st.container(key='nav_admin') if logged_in else None
+        nav_menu = st.container(key='nav_menu')
+        nav_admin = st.container(key='nav_admin') if logged_in else None
 
-            for page, (method_name, path) in MENU.items():
-                if page == 'Admin Tarif' and not logged_in:
-                    continue
-                active = screen == page
-                icon_color = '#ffffff' if active else '#0d7a76'
-                icon_uri = icon_data_uri(path, icon_color, 30)
-                target_container = nav_menu if method_name else nav_admin
-                with target_container:
-                    st.button(
-                        f'![](data:image/svg+xml,{icon_uri}) {page}',
-                        key=f'btn_{page}',
-                        type='primary' if active else 'secondary',
-                        on_click=go_to,
-                        args=(page,),
-                        use_container_width=True,
-                    )
+        for page, (method_name, path) in MENU.items():
+            if page == 'Admin Tarif' and not logged_in:
+                continue
+            active = screen == page
+            icon_color = '#ffffff' if active else '#0d7a76'
+            icon_uri = icon_data_uri(path, icon_color, 30)
+            target_container = nav_menu if method_name else nav_admin
+            with target_container:
+                st.button(
+                    f'![](data:image/svg+xml,{icon_uri}) {page}',
+                    key=f'btn_{page}',
+                    type='primary' if active else 'secondary',
+                    on_click=go_to,
+                    args=(page,),
+                    use_container_width=True,
+                )
 
         with st.container(key='nav_session'):
             sess_active = screen == 'Ganti Sesi'
@@ -1261,6 +1259,10 @@ with col_main:
                             for pno in range(1, total_man + 1)
                         }
 
+                # Placeholder di dalam kartu Naskah & Halaman agar daftar rincian persentase warna tiap halaman
+                # langsung muncul di atas tanpa harus scroll jauh ke bawah
+                toner_detail_placeholder = st.empty()
+
             with st.container(key='card_spek'):
                 st.markdown(
                     '<div class="card-header-row">'
@@ -1297,7 +1299,6 @@ with col_main:
                             file_hash = hashlib.sha256(data).hexdigest()
 
                             if full_color_complexity_mode and not force:
-                                # Mode Auto-Detect Full Colour (V2 signature agar cache lama 40% otomatis diganti)
                                 fc_sig = ('v2_block_cov', file_hash, total)
                                 saved_fc = st.session_state.get('fc_toner_analysis')
                                 if run_analysis_clicked or not saved_fc or saved_fc[:3] != fc_sig:
@@ -1345,21 +1346,21 @@ with col_main:
                         st.stop()
 
                 if colors or blacks:
-                    with st.expander('Lihat daftar sebaran nomor halaman & persentase toner warna'):
-                        st.write('**Halaman Warna:**', ', '.join(map(str, colors)) or 'Tidak ada')
-                        st.write('**Halaman Hitam Putih:**', ', '.join(map(str, blacks)) or 'Tidak ada')
-                        if page_toner_pcts and colors:
-                            # Menampilkan SELURUH halaman tanpa dipotong [:80] di dalam kotak scroll rapi
-                            all_toner_items = ', '.join(
-                                f'<b>Hlm {p}:</b> {page_toner_pcts.get(p, 0.0):.1f}%'
-                                for p in colors
-                            )
-                            st.markdown(
-                                f'<div style="margin-top:0.5rem; font-size:0.8rem; font-weight:700; color:#0d7a76;">'
-                                f'📊 Estimasi Cakupan Toner Warna per Halaman (Total {len(colors)} halaman):</div>'
-                                f'<div class="toner-scroll-box">{all_toner_items}</div>',
-                                unsafe_allow_html=True,
-                            )
+                    with toner_detail_placeholder.container():
+                        with st.expander('📊 Lihat daftar sebaran nomor halaman & persentase toner warna', expanded=bool(full_color_complexity_mode)):
+                            if page_toner_pcts and colors:
+                                all_toner_items = ', '.join(
+                                    f'<b>Hlm {p}:</b> {page_toner_pcts.get(p, 0.0):.1f}%'
+                                    for p in colors
+                                )
+                                st.markdown(
+                                    f'<div style="font-size:0.8rem; font-weight:700; color:#0d7a76;">'
+                                    f'Rincian Cakupan Warna Seluruh Halaman (1 s/d {len(colors)}):</div>'
+                                    f'<div class="toner-scroll-box">{all_toner_items}</div>',
+                                    unsafe_allow_html=True,
+                                )
+                            st.write('**Halaman Warna:**', ', '.join(map(str, colors)) or 'Tidak ada')
+                            st.write('**Halaman Hitam Putih:**', ', '.join(map(str, blacks)) or 'Tidak ada')
 
         with col_right:
             total_pages_count = color + bw
