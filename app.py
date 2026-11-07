@@ -95,7 +95,6 @@ def analyze_full_color_toner_pdf(file_bytes, total_p):
 
             if chroma >= 12:
                 # Piksel berwarna (CMY aktif):
-                # Setiap piksel blok warna yang menutup kertas dihitung sebagai cakupan blok warna (0.85 - 1.0)
                 ink_intensity = (255 - min_c) / 255.0
                 color_coverage_sum += min(1.0, 0.82 + (ink_intensity * 0.25))
             else:
@@ -178,7 +177,7 @@ def calculate_with_toner_complexity(
 
 
 # ==========================================
-# CSS TEMA FLOATING CANVAS (SCROLL KANAN AKTIF & RAPI DI DALAM CONTAINER)
+# CSS TEMA FLOATING CANVAS (SIMETRIS ATAS-BAWAH, SCROLLBAR HIJAU DI DALAM CONTAINER)
 # ==========================================
 st.markdown('''<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
@@ -188,16 +187,24 @@ html, body, [class*="css"] {
     color: #142829;
 }
 
-/* Kunci scroll layar luar agar frame kanvas tetap diam di tengah layar */
+/* Kunci scroll layar luar & pusatkan kanvas secara vertikal-horizontal (imbang atas-bawah) */
 html, body, [data-testid="stAppViewContainer"], .main {
     overflow: hidden !important;
     height: 100vh !important;
+}
+[data-testid="stAppViewBlockContainer"], .main > div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100vh !important;
+    padding: 0 !important;
 }
 
 header[data-testid="stHeader"] {
     background: transparent !important;
     height: 0rem !important;
     min-height: 0rem !important;
+    display: none !important;
 }
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {
     display: none !important;
@@ -212,14 +219,13 @@ header[data-testid="stHeader"] {
     background-attachment: fixed !important;
 }
 
-/* Kontainer Utama Sebagai FLOATING APP CANVAS */
+/* Kontainer Utama Sebagai FLOATING APP CANVAS: 92vh dengan margin 4vh atas & 4vh bawah (100% IMBANG) */
 .block-container {
     max-width: 1360px !important;
-    height: calc(100vh - 3.2rem) !important;
-    max-height: 900px !important;
-    min-height: 680px !important;
-    margin: 1.6rem auto !important;
-    padding: 0 6px 0 0 !important;
+    width: 95vw !important;
+    height: 92vh !important;
+    margin: 4vh auto !important;
+    padding: 0 !important;
     background: linear-gradient(125deg, rgba(232, 244, 242, 0.96) 0%, rgba(220, 238, 236, 0.93) 65%, rgba(232, 230, 245, 0.93) 100%) !important;
     border: 2.5px solid rgba(255, 255, 255, 0.88) !important;
     border-radius: 34px !important;
@@ -228,47 +234,54 @@ header[data-testid="stHeader"] {
         0 10px 22px rgba(18, 52, 56, 0.06),
         inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
     overflow: hidden !important;
-}
-
-/* Kolom Kiri (Sidebar In-Canvas): TETAP DIAM & Tombol Sesi di Dasar Kiri Bawah */
-.st-key-canvas_sidebar {
-    position: relative !important;
-    padding: 2.2rem 1.35rem 1.6rem 2rem !important;
-    border-right: 1.5px solid rgba(255, 255, 255, 0.65);
-    height: calc(100vh - 3.2rem) !important;
-    max-height: 900px !important;
-    min-height: 680px !important;
-    overflow: hidden !important;
     box-sizing: border-box !important;
 }
 
-/* Kolom Kanan (Main Workspace): BISA DIGULIR PENUH TANPA TERTAHAN */
+/* Kolom Kiri (Sidebar In-Canvas): Tinggi penuh 92vh & Flexbox Space-Between agar Tombol Sesi Mentok Bawah & Tidak Terpotong */
+.st-key-canvas_sidebar {
+    padding: 2.1rem 1.4rem 1.4rem 1.85rem !important;
+    border-right: 1.5px solid rgba(255, 255, 255, 0.65);
+    height: 92vh !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+.st-key-canvas_sidebar > div[data-testid="stVerticalBlock"] {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+
+/* Kolom Kanan (Main Workspace): Dikurangi 36px (18px atas & 18px bawah) + jarak kanan 10px agar Scrollbar TIDAK KELUAR dari sudut 34px */
 .st-key-canvas_main {
-    padding: 2rem 2rem 3.5rem 1.8rem !important;
-    height: calc(100vh - 3.2rem) !important;
-    max-height: 900px !important;
-    min-height: 680px !important;
+    padding: 1.4rem 1.6rem 2.4rem 1.6rem !important;
+    margin: 18px 10px 18px 0 !important;
+    height: calc(92vh - 36px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     scroll-behavior: smooth;
     box-sizing: border-box !important;
 }
 
-/* Custom Scrollbar Hijau Teal (#0d7a76) dengan margin atas-bawah 28px agar tidak keluar sudut melengkung */
+/* Custom Scrollbar Hijau Gradasi Sesuai Tema Side Menu (Tanpa scrollbar-color standar yang menimpa Webkit) */
 .st-key-canvas_main::-webkit-scrollbar {
-    width: 7px;
+    width: 8px !important;
 }
 .st-key-canvas_main::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.28);
-    border-radius: 99px;
-    margin: 28px 0;
+    background: rgba(13, 122, 118, 0.10) !important;
+    border-radius: 99px !important;
+    margin: 12px 0 !important;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb {
-    background: #0d7a76;
-    border-radius: 99px;
+    background: linear-gradient(180deg, #0b6e6d 0%, #178d89 100%) !important;
+    border-radius: 99px !important;
+    border: 1.5px solid rgba(232, 244, 242, 0.7) !important;
 }
 .st-key-canvas_main::-webkit-scrollbar-thumb:hover {
-    background: #095d5c;
+    background: linear-gradient(180deg, #085554 0%, #0d7a76 100%) !important;
 }
 
 /* Brand Logo "LitnusPro" */
@@ -277,7 +290,7 @@ header[data-testid="stHeader"] {
     font-weight: 800;
     color: #142829;
     letter-spacing: -0.03em;
-    padding: 0.1rem 0.5rem 1.6rem 0.5rem;
+    padding: 0.1rem 0.5rem 1.5rem 0.5rem;
     line-height: 1.1;
 }
 .brand-logo span {
@@ -290,22 +303,23 @@ header[data-testid="stHeader"] {
 
 /* Tombol Menu Navigasi Kiri */
 .st-key-nav_menu button, .st-key-nav_admin button, .st-key-nav_session button {
-    min-height: 54px !important;
+    min-height: 52px !important;
     width: 100% !important;
     display: flex !important;
     justify-content: flex-start !important;
     align-items: center !important;
     text-align: left !important;
-    padding: 0.6rem 1.15rem !important;
+    padding: 0.55rem 1.05rem !important;
     border-radius: 16px !important;
     border: none !important;
     background: transparent !important;
     color: #0d7a76 !important;
-    font-size: 0.95rem !important;
+    font-size: 0.94rem !important;
     font-weight: 600 !important;
     box-shadow: none !important;
     transition: background 0.15s ease, color 0.15s ease !important;
-    margin-bottom: 0.4rem !important;
+    margin-bottom: 0.35rem !important;
+    box-sizing: border-box !important;
 }
 
 .st-key-nav_menu button > div, .st-key-nav_admin button > div, .st-key-nav_session button > div {
@@ -313,29 +327,30 @@ header[data-testid="stHeader"] {
     align-items: center !important;
     justify-content: flex-start !important;
     width: 100% !important;
-    gap: 12px !important;
+    gap: 10px !important;
 }
 
 .st-key-nav_menu button p, .st-key-nav_admin button p, .st-key-nav_session button p {
-    font-size: 0.95rem !important;
+    font-size: 0.93rem !important;
     font-weight: 600 !important;
     margin: 0 !important;
     text-align: left !important;
     display: flex !important;
     align-items: center !important;
     line-height: 1.2 !important;
+    white-space: nowrap !important;
 }
 
 .st-key-nav_menu button img, .st-key-nav_admin button img, .st-key-nav_session button img {
-    width: 30px !important;
-    height: 30px !important;
-    margin-right: 12px !important;
+    width: 28px !important;
+    height: 28px !important;
+    margin-right: 10px !important;
     vertical-align: middle !important;
     flex-shrink: 0 !important;
 }
 
 .st-key-nav_menu button:hover, .st-key-nav_admin button:hover, .st-key-nav_session button:hover {
-    background: rgba(255, 255, 255, 0.52) !important;
+    background: rgba(255, 255, 255, 0.55) !important;
     color: #065a57 !important;
 }
 
@@ -353,24 +368,24 @@ header[data-testid="stHeader"] {
 }
 
 .st-key-nav_admin {
-    margin-top: 0.6rem;
-    padding-top: 0.6rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
     border-top: 1px solid rgba(13, 122, 118, 0.15);
 }
 
-/* Tombol Keluar / Ganti Sesi di Dasar Pojok Kiri Bawah */
+/* Tombol Keluar / Ganti Sesi Mentok di Dasar Kiri Bawah & Lebar 100% Utuh Tanpa Terpotong */
 .st-key-nav_session {
-    position: absolute !important;
-    bottom: 1.6rem !important;
-    left: 2rem !important;
-    right: 1.35rem !important;
-    padding-top: 0.9rem !important;
+    margin-top: auto !important;
+    padding-top: 0.85rem !important;
     border-top: 1px solid rgba(13, 122, 118, 0.16);
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 .st-key-nav_session button {
-    background: rgba(255, 255, 255, 0.62) !important;
-    border: 1px solid rgba(13, 122, 118, 0.22) !important;
+    background: rgba(255, 255, 255, 0.68) !important;
+    border: 1.5px solid rgba(13, 122, 118, 0.24) !important;
     margin-bottom: 0 !important;
+    width: 100% !important;
 }
 
 /* Topbar */
@@ -493,28 +508,60 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     border-radius: 16px !important;
 }
 
-/* Aksen Hijau Khas Menu Utama (#0d7a76) pada Kotak Input Judul Buku & Jumlah Cetak */
-.st-key-accent_title div[data-baseweb="input"],
-.st-key-accent_qty div[data-baseweb="input"] {
+/* Aksen Judul Buku */
+.st-key-accent_title div[data-baseweb="input"] {
     background: linear-gradient(95deg, rgba(13, 122, 118, 0.12) 0%, rgba(23, 141, 137, 0.08) 100%) !important;
     border: 2px solid #0d7a76 !important;
     border-radius: 14px !important;
     box-shadow: 0 4px 12px rgba(13, 122, 118, 0.10) !important;
 }
-.st-key-accent_title input,
-.st-key-accent_qty input {
+.st-key-accent_title input {
     color: #084c49 !important;
     font-weight: 700 !important;
 }
-.st-key-accent_title label p,
-.st-key-accent_qty label p {
+.st-key-accent_title label p {
     color: #0d7a76 !important;
     font-weight: 700 !important;
 }
 
+/* Kolom Jumlah Cetak (Eksemplar): WARNA HIJAU GRADASI PERSIS SEPERTI SIDE MENU */
+.st-key-accent_qty label p {
+    color: #0b6e6d !important;
+    font-weight: 700 !important;
+}
+.st-key-accent_qty [data-testid="stNumberInputContainer"],
+.st-key-accent_qty div[data-baseweb="input"],
+.st-key-accent_qty div[data-baseweb="base-input"] {
+    background: linear-gradient(95deg, #0b6e6d 0%, #178d89 100%) !important;
+    border: none !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 18px -5px rgba(11, 110, 109, 0.42) !important;
+}
+.st-key-accent_qty input {
+    background: transparent !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+}
+.st-key-accent_qty button {
+    background: rgba(255, 255, 255, 0.16) !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+.st-key-accent_qty button:hover {
+    background: rgba(255, 255, 255, 0.28) !important;
+    color: #ffffff !important;
+}
+.st-key-accent_qty button svg {
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
 /* Kotak Scroll Rapi untuk Daftar Sebaran Halaman & Persentase Toner */
 .toner-scroll-box {
-    max-height: 240px;
+    max-height: 220px;
     overflow-y: auto;
     background: rgba(255, 255, 255, 0.78);
     border: 1px solid rgba(13, 122, 118, 0.22);
@@ -529,7 +576,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     width: 6px;
 }
 .toner-scroll-box::-webkit-scrollbar-thumb {
-    background: #0d7a76;
+    background: linear-gradient(180deg, #0b6e6d 0%, #178d89 100%);
     border-radius: 99px;
 }
 
@@ -698,29 +745,26 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         overflow-y: auto !important;
         height: auto !important;
     }
+    [data-testid="stAppViewBlockContainer"], .main > div {
+        display: block !important;
+        height: auto !important;
+    }
     .block-container {
         height: auto !important;
-        max-height: none !important;
-        margin: 0.5rem !important;
+        width: 96vw !important;
+        margin: 0.5rem auto !important;
         border-radius: 22px !important;
         overflow: visible !important;
     }
     .st-key-canvas_sidebar {
         height: auto !important;
-        max-height: none !important;
-        min-height: 0 !important;
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.5);
         padding: 1.4rem !important;
     }
-    .st-key-nav_session {
-        position: static !important;
-        margin-top: 1.2rem !important;
-    }
     .st-key-canvas_main {
         height: auto !important;
-        max-height: none !important;
-        min-height: 0 !important;
+        margin: 0 !important;
         padding: 1.4rem !important;
     }
 }
@@ -839,27 +883,28 @@ col_nav, col_main = st.columns([0.24, 0.76], gap='small')
 
 with col_nav:
     with st.container(key='canvas_sidebar'):
-        st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
+        with st.container(key='sidebar_top_wrap'):
+            st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
 
-        nav_menu = st.container(key='nav_menu')
-        nav_admin = st.container(key='nav_admin') if logged_in else None
+            nav_menu = st.container(key='nav_menu')
+            nav_admin = st.container(key='nav_admin') if logged_in else None
 
-        for page, (method_name, path) in MENU.items():
-            if page == 'Admin Tarif' and not logged_in:
-                continue
-            active = screen == page
-            icon_color = '#ffffff' if active else '#0d7a76'
-            icon_uri = icon_data_uri(path, icon_color, 30)
-            target_container = nav_menu if method_name else nav_admin
-            with target_container:
-                st.button(
-                    f'![](data:image/svg+xml,{icon_uri}) {page}',
-                    key=f'btn_{page}',
-                    type='primary' if active else 'secondary',
-                    on_click=go_to,
-                    args=(page,),
-                    use_container_width=True,
-                )
+            for page, (method_name, path) in MENU.items():
+                if page == 'Admin Tarif' and not logged_in:
+                    continue
+                active = screen == page
+                icon_color = '#ffffff' if active else '#0d7a76'
+                icon_uri = icon_data_uri(path, icon_color, 30)
+                target_container = nav_menu if method_name else nav_admin
+                with target_container:
+                    st.button(
+                        f'![](data:image/svg+xml,{icon_uri}) {page}',
+                        key=f'btn_{page}',
+                        type='primary' if active else 'secondary',
+                        on_click=go_to,
+                        args=(page,),
+                        use_container_width=True,
+                    )
 
         with st.container(key='nav_session'):
             sess_active = screen == 'Ganti Sesi'
@@ -1259,8 +1304,6 @@ with col_main:
                             for pno in range(1, total_man + 1)
                         }
 
-                # Placeholder di dalam kartu Naskah & Halaman agar daftar rincian persentase warna tiap halaman
-                # langsung muncul di atas tanpa harus scroll jauh ke bawah
                 toner_detail_placeholder = st.empty()
 
             with st.container(key='card_spek'):
