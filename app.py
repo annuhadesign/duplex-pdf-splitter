@@ -941,23 +941,16 @@ with col_main:
 
                 if total_pages_count > 0:
                     c_dl1, c_dl2 = st.columns(2)
-                    receipt = (
-                        f"LITNUS PRINTING
-ESTIMASI BIAYA
+                    receipt = f"""LITNUS PRINTING - ESTIMASI BIAYA
 Judul: {title}
-Tarif versi {version}
-"
-                        f"{size} | {paper} | {mode} | {binding}
-{color} halaman warna + {bw} BW
-"
-                        f"{qty} eksemplar
+Tarif versi: {version}
+Spesifikasi: {size} | {paper} | {mode} | {binding}
+Isi buku: {color} halaman warna + {bw} BW
+Jumlah: {qty} eksemplar
 Harga/eks: {rp(r['unit'])}
 Total: {rp(r['total'])}
-"
-                        f"DP {config['dp']}%: {rp(r['dp'])}
-Diskon isi {r['discount']}% | Diskon finishing {r['finishing_discount']}%
-"
-                    )
+DP {config['dp']}%: {rp(r['dp'])}
+Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%"""
                     c_dl1.download_button('Unduh Estimasi', receipt, f'Estimasi_{title}.txt', 'text/plain', use_container_width=True)
 
                     invoice = f"""LITNUS PRINTING - NOTA TAGIHAN CETAK
