@@ -11,7 +11,7 @@ PRICING_MATRIX = {
 }
 
 def format_rupiah(value):
-    return f'Rp {int(value):,}'.replace(',', '.')
+    return f'Rp {int(round(value)):,}'.replace(',', '.')
 
 @st.cache_data(show_spinner=False)
 def get_pdf_page_count(file_bytes):
@@ -162,35 +162,64 @@ def split_pdf_by_pages(file_bytes, selected_pages, total_pages):
     remaining_pages = [p for p in range(1, total_pages + 1) if p not in selected_set]
     return (list(selected_pages), remaining_pages, pdf_selected, pdf_remaining)
 
-@st.cache_data(show_spinner='Menganalisis warna dan memisahkan PDF...')
+@st.cache_data(show_spinner='Menganalisis warna, kompleksitas toner, dan memisahkan PDF...')
 def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
     doc = fitz.open(stream=file_bytes, filetype='pdf')
     pure_color_pages = []
+    # Menyimpan persentase pemakaian toner warna (0.0 - 100.0%) untuk tiap halaman (1-based index)
+    page_toner_pcts = {}
+
     if not force_bw:
         for page_num in range(total_p):
             page = doc[page_num]
-            # DPI 54 + stride 4x lebih cepat tanpa mengurangi akurasi deteksi warna
             pix = page.get_pixmap(dpi=54, colorspace=fitz.csRGB)
             samples = pix.samples
             n = pix.n
             color_pixel_count = 0
+            weighted_toner_sum = 0.0
             step = n * 4
             sample_count = 0
+
             for i in range(0, len(samples) - n + 1, step):
                 r = samples[i]
                 g = samples[i + 1]
                 b = samples[i + 2]
                 sample_count += 1
-                if abs(r - g) > sens or abs(r - b) > sens or abs(g - b) > sens:
+                diff_rg = abs(r - g)
+                diff_rb = abs(r - b)
+                diff_gb = abs(g - b)
+                max_diff = max(diff_rg, diff_rb, diff_gb)
+
+                if max_diff > sens:
                     color_pixel_count += 1
-            color_ratio = (color_pixel_count / sample_count * 100) if sample_count else 0
-            if color_ratio >= min_pct:
+                    # Kompleksitas/kepekatan toner warna piksel ini:
+                    # memperhitungkan saturasi warna (max_diff) + kepekatan tinta (255 - min_rgb)
+                    min_rgb = min(r, g, b)
+                    ink_density = (255 - min_rgb) / 255.0
+                    chroma_strength = max_diff / 255.0
+                    pixel_toner_load = min(1.0, (chroma_strength * 0.65) + (ink_density * 0.35))
+                    weighted_toner_sum += pixel_toner_load
+
+            area_color_ratio = (color_pixel_count / sample_count * 100.0) if sample_count else 0.0
+            toner_coverage_pct = (weighted_toner_sum / sample_count * 100.0) if sample_count else 0.0
+
+            if area_color_ratio >= min_pct:
                 pure_color_pages.append(page_num + 1)
+                # Simpan persentase kompleksitas toner halaman tersebut (minimal setara area_color_ratio)
+                page_toner_pcts[page_num + 1] = min(100.0, max(toner_coverage_pct, area_color_ratio))
+            else:
+                page_toner_pcts[page_num + 1] = 0.0
+    else:
+        for page_num in range(total_p):
+            page_toner_pcts[page_num + 1] = 0.0
+
     final_color_set = set(pure_color_pages)
     if mode == 'Duplex (Bolak-balik)' and (not force_bw):
         final_color_set = set(add_duplex_pairs(sorted(final_color_set), total_p))
+
     final_color_list = sorted(final_color_set)
     final_bw_list = [p for p in range(1, total_p + 1) if p not in final_color_set]
+
     doc_warna = fitz.open()
     doc_bw = fitz.open()
     for page_num in range(total_p):
@@ -199,9 +228,11 @@ def process_and_split_pdf(file_bytes, force_bw, sens, min_pct, mode, total_p):
             doc_warna.insert_pdf(doc, from_page=page_num, to_page=page_num)
         else:
             doc_bw.insert_pdf(doc, from_page=page_num, to_page=page_num)
+
     pdf_warna_bytes = doc_warna.write() if len(doc_warna) else None
     pdf_bw_bytes = doc_bw.write() if len(doc_bw) else None
     doc_warna.close()
     doc_bw.close()
     doc.close()
-    return (final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes, pure_color_pages)
+
+    return (final_color_list, final_bw_list, pdf_warna_bytes, pdf_bw_bytes, pure_color_pages, page_toner_pcts)
