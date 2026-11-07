@@ -15,7 +15,7 @@ from engine import (
 from settings import DEFAULT, setup, read, save, calculate, validate, connect
 
 st.set_page_config(
-    page_title='LitnusPro • Studio Cetak v1.2.3',
+    page_title='LitnusPro • Studio Cetak v1.2.4',
     page_icon='📚',
     layout='wide',
     initial_sidebar_state='collapsed',
@@ -170,21 +170,35 @@ def calculate_with_toner_complexity(
 st.markdown('''<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
+:root {
+    --canvas-height: 92vh;
+    --canvas-margin: 4vh;
+    --canvas-inset: 20px;
+    --litnus-green-start: #0b6e6d;
+    --litnus-green-end: #178d89;
+    --litnus-green-gradient: linear-gradient(95deg, var(--litnus-green-start), var(--litnus-green-end));
+}
+@supports (height: 100dvh) {
+    :root {
+        --canvas-height: 92dvh;
+        --canvas-margin: 4dvh;
+    }
+}
+
 html, body, [class*="css"] {
     font-family: 'Poppins', sans-serif !important;
     color: #142829;
 }
 
-html, body, [data-testid="stAppViewContainer"], .main {
+html, body, [data-testid="stAppViewContainer"] {
     overflow: hidden !important;
     height: 100vh !important;
+    height: 100dvh !important;
 }
-[data-testid="stAppViewBlockContainer"], .main > div {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: 100vh !important;
-    padding: 0 !important;
+[data-testid="stMain"], .main {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
 }
 
 header[data-testid="stHeader"] {
@@ -205,9 +219,10 @@ header[data-testid="stHeader"] {
 .block-container {
     max-width: 1360px !important;
     width: 95vw !important;
-    height: 92vh !important;
-    margin: 4vh auto !important;
+    height: var(--canvas-height) !important;
+    margin: var(--canvas-margin) auto !important;
     padding: 0 !important;
+    display: block !important;
     background: linear-gradient(125deg, rgba(232, 244, 242, 0.96) 0%, rgba(220, 238, 236, 0.93) 65%, rgba(232, 230, 245, 0.93) 100%) !important;
     border: 2.5px solid rgba(255, 255, 255, 0.88) !important;
     border-radius: 34px !important;
@@ -219,52 +234,134 @@ header[data-testid="stHeader"] {
     box-sizing: border-box !important;
 }
 
-/* Kolom Kiri (Sidebar In-Canvas): Flex Column murni agar tombol logout mentok bawah & tidak terpotong */
+/* The frame owns the height; only its inset workspace scrolls on desktop. */
+.block-container > [data-testid="stVerticalBlock"],
+.block-container > [data-testid="stVerticalBlockBorderWrapper"],
+.block-container > [data-testid="stVerticalBlockBorderWrapper"] > div,
+.block-container > [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"],
+.st-key-canvas_shell,
+.st-key-canvas_shell > div,
+.st-key-canvas_shell > div > [data-testid="stVerticalBlock"],
+.st-key-canvas_shell [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-canvas_sidebar) {
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+}
+.st-key-canvas_shell [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-canvas_sidebar) {
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+}
+.block-container [data-testid="stLayoutWrapper"]:has(.st-key-canvas_shell),
+.st-key-canvas_shell [data-testid="stLayoutWrapper"]:has(.st-key-canvas_sidebar),
+.st-key-canvas_shell [data-testid="stLayoutWrapper"]:has(.st-key-canvas_main) {
+    height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 1 0% !important;
+}
+.st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar) {
+    flex: 0 0 300px !important;
+    width: 300px !important;
+}
+.st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_main) {
+    flex: 1 1 0% !important;
+    padding: var(--canvas-inset) 16px var(--canvas-inset) 0 !important;
+    box-sizing: border-box !important;
+}
+.st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar),
+.st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_main),
+.st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar) > div,
+.st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_main) > div {
+    height: 100% !important;
+    min-height: 0 !important;
+}
+.st-key-canvas_shell [data-testid="stColumn"],
+.st-key-canvas_shell [data-testid="stVerticalBlock"],
+.st-key-canvas_shell [data-testid="stLayoutWrapper"],
+.st-key-canvas_shell [data-testid="stElementContainer"],
+.st-key-canvas_shell [data-testid="stMarkdownContainer"] {
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+.st-key-canvas_main [data-testid="stElementContainer"] {
+    max-width: 100%;
+}
+
 .st-key-canvas_sidebar {
     padding: 2.1rem 1.4rem 1.6rem 1.85rem !important;
     border-right: 1.5px solid rgba(255, 255, 255, 0.65);
-    height: 92vh !important;
-    overflow: hidden !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
 }
-.st-key-canvas_sidebar > div[data-testid="stVerticalBlock"] {
+.st-key-canvas_sidebar[data-testid="stVerticalBlockBorderWrapper"] > div,
+.st-key-canvas_sidebar[data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"] {
     height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
 }
 
-/* Kolom Kanan (Main Workspace): Scrollbar aman di dalam batas sudut 34px */
 .st-key-canvas_main {
-    padding: 1.4rem 1.8rem 2.4rem 1.6rem !important;
-    margin: 16px 8px 16px 0 !important;
-    height: calc(92vh - 32px) !important;
-    max-height: calc(92vh - 32px) !important;
+    padding: 1.2rem 1.4rem 2rem 1.6rem !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    overscroll-behavior-y: contain;
     box-sizing: border-box !important;
 }
-
-/* Custom Scrollbar Hijau Gradasi */
-.st-key-canvas_main::-webkit-scrollbar {
-    width: 8px !important;
+.st-key-canvas_main > *, .st-key-canvas_sidebar > * {
+    flex-shrink: 0;
 }
-.st-key-canvas_main::-webkit-scrollbar-track {
+
+/* Standard colors are the fallback for browsers without WebKit scrollbars. */
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main) {
+    scrollbar-color: var(--litnus-green-start) rgba(13, 122, 118, 0.08) !important;
+    scrollbar-width: thin !important;
+}
+@supports selector(::-webkit-scrollbar) {
+    /* Non-auto standard properties override gradient thumbs in Chrome/Edge. */
+    :is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main) {
+        scrollbar-color: auto !important;
+        scrollbar-width: auto !important;
+    }
+}
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main)::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main)::-webkit-scrollbar-track {
     background: rgba(13, 122, 118, 0.08) !important;
     border-radius: 99px !important;
-    margin: 14px 0 !important;
+    margin-block: 4px !important;
 }
-.st-key-canvas_main::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #0b6e6d 0%, #178d89 100%) !important;
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main)::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--litnus-green-start), var(--litnus-green-end)) !important;
     border-radius: 99px !important;
-    border: 1.5px solid rgba(232, 244, 242, 0.65) !important;
+    border: 2px solid transparent !important;
+    background-clip: padding-box !important;
+    min-height: 44px !important;
 }
-.st-key-canvas_main::-webkit-scrollbar-thumb:hover {
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main)::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, #085554 0%, #0d7a76 100%) !important;
+    background-clip: padding-box !important;
+}
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main)::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+:is(.st-key-canvas_main, .st-key-canvas_sidebar, .toner-scroll-box, [data-testid="stMain"], .main)::-webkit-scrollbar-corner {
+    background: transparent !important;
 }
 
 .brand-logo {
@@ -336,7 +433,7 @@ header[data-testid="stHeader"] {
 }
 
 .st-key-nav_menu button[kind="primary"], .st-key-nav_admin button[kind="primary"], .st-key-nav_session button[kind="primary"] {
-    background: linear-gradient(95deg, #0b6e6d 0%, #178d89 100%) !important;
+    background: var(--litnus-green-gradient) !important;
     color: #ffffff !important;
     font-weight: 600 !important;
     box-shadow: 0 10px 22px -6px rgba(11, 110, 109, 0.42) !important;
@@ -377,13 +474,18 @@ header[data-testid="stHeader"] {
     margin-bottom: 1.25rem !important;
     gap: 16px !important;
     width: 100% !important;
+    flex-wrap: wrap;
+}
+.topbar-wrap > div {
+    min-width: 0;
+    max-width: 100%;
 }
 .welcome-text {
     font-size: 0.94rem;
     font-weight: 500;
     color: #0e7c77;
     margin-bottom: 0.1rem;
-    white-space: nowrap !important;
+    overflow-wrap: anywhere;
 }
 .page-main-title {
     font-size: 2.1rem;
@@ -392,13 +494,14 @@ header[data-testid="stHeader"] {
     letter-spacing: -0.03em;
     line-height: 1.15;
     margin: 0;
-    white-space: nowrap !important;
+    overflow-wrap: anywhere;
 }
 .user-profile-bar {
     display: flex;
     align-items: center;
     gap: 14px;
-    flex-shrink: 0;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 .top-icon-btn {
     display: flex;
@@ -415,11 +518,14 @@ header[data-testid="stHeader"] {
     padding: 4px 12px 4px 5px;
     border-radius: 99px;
     border: 1px solid rgba(255, 255, 255, 0.85);
-    white-space: nowrap !important;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .user-avatar {
     width: 34px;
     height: 34px;
+    flex-shrink: 0;
     border-radius: 50%;
     background: linear-gradient(135deg, #0b6e6d, #199c96);
     color: #ffffff;
@@ -435,6 +541,8 @@ header[data-testid="stHeader"] {
     font-size: 0.85rem;
     font-weight: 600;
     color: #162a2b;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 /* Glass Containers & Input Styles */
@@ -454,6 +562,10 @@ header[data-testid="stHeader"] {
     padding: 1.35rem 1.6rem !important;
     box-shadow: 0 12px 26px -8px rgba(17, 60, 58, 0.06) !important;
     margin-bottom: 1.15rem !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    container-type: inline-size;
 }
 
 .card-header-row {
@@ -461,6 +573,12 @@ header[data-testid="stHeader"] {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+}
+.card-header-row > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 .card-title {
     font-size: 1.05rem;
@@ -551,19 +669,15 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     color: #1c3d3b;
     margin-top: 0.4rem;
 }
-.toner-scroll-box::-webkit-scrollbar {
-    width: 6px;
-}
-.toner-scroll-box::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #0b6e6d 0%, #178d89 100%);
-    border-radius: 99px;
-}
-
 .stat-grid-4 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
     gap: 14px;
     margin-bottom: 1.15rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .stat-glass-box {
     background: rgba(238, 247, 245, 0.72);
@@ -574,6 +688,9 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     align-items: center;
     gap: 14px;
     box-shadow: 0 10px 22px -6px rgba(17, 60, 58, 0.06);
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .stat-badge {
     width: 46px;
@@ -592,7 +709,8 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 .stat-meta {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    min-width: 0;
+    flex: 1 1 0;
 }
 .stat-meta-label {
     font-size: 0.68rem;
@@ -601,15 +719,32 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 2px;
+    overflow-wrap: anywhere;
 }
 .stat-meta-val {
     font-size: 1.35rem;
     font-weight: 700;
     color: #162627;
     line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.page-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    text-align: center;
+    gap: 8px 4px;
+}
+.page-stats-grid > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+@container (max-width: 320px) {
+    .page-stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 .stat-bar-track {
@@ -713,29 +848,149 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     color: #ffffff !important;
 }
 
+@media (min-width: 901px) and (max-width: 1200px) {
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar) {
+        flex-basis: 250px !important;
+        width: 250px !important;
+    }
+    .st-key-canvas_sidebar {
+        padding: 1.5rem 1rem !important;
+    }
+    .st-key-canvas_main {
+        padding-inline: 1.1rem !important;
+    }
+    .st-key-canvas_main > [data-testid="stHorizontalBlock"],
+    .st-key-canvas_main > div > [data-testid="stHorizontalBlock"],
+    .st-key-canvas_main > div > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+    }
+    .st-key-canvas_main > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+    .st-key-canvas_main > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+    .st-key-canvas_main > div > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+    }
+    .stat-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 900px) {
-    html, body, [data-testid="stAppViewContainer"], .main {
+    [data-testid="stMain"], .main {
         overflow-y: auto !important;
-        height: auto !important;
+        overflow-x: hidden !important;
     }
     .block-container {
         height: auto !important;
         width: 96vw !important;
         margin: 0.5rem auto !important;
         border-radius: 22px !important;
-        overflow: visible !important;
+        overflow: hidden !important;
+    }
+    .block-container > [data-testid="stVerticalBlock"],
+    .block-container > [data-testid="stVerticalBlockBorderWrapper"],
+    .block-container > [data-testid="stVerticalBlockBorderWrapper"] > div,
+    .block-container > [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"],
+    .block-container [data-testid="stLayoutWrapper"]:has(.st-key-canvas_shell),
+    .st-key-canvas_shell [data-testid="stLayoutWrapper"]:has(.st-key-canvas_sidebar),
+    .st-key-canvas_shell [data-testid="stLayoutWrapper"]:has(.st-key-canvas_main),
+    .st-key-canvas_shell,
+    .st-key-canvas_shell > div,
+    .st-key-canvas_shell > div > [data-testid="stVerticalBlock"],
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar),
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_main),
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar) > div,
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_main) > div,
+    .st-key-canvas_shell [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-canvas_sidebar) {
+        height: auto !important;
+    }
+    .block-container [data-testid="stLayoutWrapper"]:has(.st-key-canvas_shell),
+    .st-key-canvas_shell [data-testid="stLayoutWrapper"]:has(.st-key-canvas_sidebar),
+    .st-key-canvas_shell [data-testid="stLayoutWrapper"]:has(.st-key-canvas_main) {
+        flex: 1 1 auto !important;
+    }
+    .st-key-canvas_shell [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-canvas_sidebar) {
+        flex-direction: column !important;
+    }
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_sidebar),
+    .st-key-canvas_shell [data-testid="stColumn"]:has(.st-key-canvas_main) {
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+    .st-key-canvas_main [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+    }
+    .st-key-canvas_main [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        flex: 1 1 100% !important;
+        width: 100% !important;
     }
     .st-key-canvas_sidebar {
         height: auto !important;
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-        padding: 1.4rem !important;
+        padding: 1.2rem !important;
+        overflow: visible !important;
+    }
+    .st-key-canvas_sidebar[data-testid="stVerticalBlockBorderWrapper"] > div,
+    .st-key-canvas_sidebar[data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"] {
+        height: auto !important;
+        gap: 1rem !important;
     }
     .st-key-canvas_main {
         height: auto !important;
         max-height: none !important;
         margin: 0 !important;
-        padding: 1.4rem !important;
+        padding: 1.2rem !important;
+        overflow: visible !important;
+        scrollbar-gutter: auto;
+    }
+    .stat-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .page-main-title {
+        font-size: clamp(1.5rem, 5vw, 2.1rem) !important;
+    }
+}
+
+@media (max-width: 540px) {
+    .st-key-canvas_sidebar, .st-key-canvas_main {
+        padding: 1rem !important;
+    }
+    .st-key-canvas_main [class*="st-key-card_"] {
+        padding: 1rem !important;
+    }
+    .stat-grid-4 {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+    .stat-glass-box {
+        padding: 1rem;
+        gap: 12px;
+    }
+    .page-stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .topbar-wrap {
+        align-items: flex-start !important;
+    }
+    .training-banner {
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .training-banner > div:first-child {
+        max-width: 100% !important;
+    }
+    .st-key-canvas_main [data-testid="stNumberInputContainer"] {
+        min-height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .st-key-canvas_shell * {
+        scroll-behavior: auto !important;
+        transition: none !important;
     }
 }
 </style>''', unsafe_allow_html=True)
@@ -848,7 +1103,8 @@ initials = ''.join([part[0] for part in user_full_name.split()[:2]]).upper() or 
 # ==========================================
 # STRUKTUR FLOATING CANVAS: SIDEBAR (DIAM) + MAIN (SCROLLABLE)
 # ==========================================
-col_nav, col_main = st.columns([0.24, 0.76], gap='small')
+with st.container(key='canvas_shell'):
+    col_nav, col_main = st.columns([0.24, 0.76], gap='small')
 
 with col_nav:
     with st.container(key='canvas_sidebar'):
@@ -1407,7 +1663,7 @@ with col_main:
                     f'<div class="stat-bar-fill-teal" style="width: {bw_ratio_pct}%;"></div>'
                     f'<div class="stat-bar-fill-pink" style="width: {color_ratio_pct}%;"></div>'
                     f'</div>'
-                    f'<div style="display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; gap: 4px;">'
+                    f'<div class="page-stats-grid">'
                     f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">TOTAL HAL</div><div style="font-size: 0.98rem; font-weight: 700; color: #162627;">{total_pages_count}</div></div>'
                     f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">HITAM PUTIH</div><div style="font-size: 0.98rem; font-weight: 700; color: #0d7a76;">{bw}</div></div>'
                     f'<div><div style="font-size: 0.62rem; font-weight: 600; color: #526c6d;">WARNA</div><div style="font-size: 0.98rem; font-weight: 700; color: #e25c86;">{color}</div></div>'
