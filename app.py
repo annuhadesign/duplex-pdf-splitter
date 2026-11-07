@@ -15,7 +15,7 @@ from engine import (
 from settings import DEFAULT, setup, read, save, calculate, validate, connect
 
 st.set_page_config(
-    page_title='LitnusPro • Studio Cetak v1.2.4',
+    page_title='LitnusPro • Studio Cetak v1.2.5',
     page_icon='📚',
     layout='wide',
     initial_sidebar_state='collapsed',
@@ -876,12 +876,36 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 }
 
 @media (max-width: 900px) {
-    [data-testid="stMain"], .main {
+    /* Mobile uses document scrolling; release every desktop viewport lock. */
+    html {
+        height: auto !important;
+        overflow-x: clip !important;
         overflow-y: auto !important;
-        overflow-x: hidden !important;
+    }
+    body, #root {
+        height: auto !important;
+        min-height: 100% !important;
+        overflow: visible !important;
+    }
+    .stApp, [data-testid="stAppViewContainer"] {
+        position: relative !important;
+        inset: auto !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    [data-testid="stMain"], .main {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        flex: none !important;
     }
     .block-container {
         height: auto !important;
+        max-height: none !important;
+        flex-shrink: 0 !important;
         width: 96vw !important;
         margin: 0.5rem auto !important;
         border-radius: 22px !important;
@@ -944,6 +968,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         padding: 1.2rem !important;
         overflow: visible !important;
         scrollbar-gutter: auto;
+        overscroll-behavior-y: auto;
     }
     .stat-grid-4 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
