@@ -91,7 +91,7 @@ header[data-testid="stHeader"] {
     background-attachment: fixed !important;
 }
 
-/* Kontainer Utama Sebagai FLOATING APP CANVAS (Tinggi dikunci & overflow hidden agar isi tidak pernah bocor keluar) */
+/* Kontainer Utama Sebagai FLOATING APP CANVAS */
 .block-container {
     max-width: 1360px !important;
     height: calc(100vh - 3.2rem) !important;
@@ -109,17 +109,16 @@ header[data-testid="stHeader"] {
     overflow: hidden !important;
 }
 
-/* Kolom Kiri (Sidebar In-Canvas): TETAP DIAM (Fixed di dalam Canvas) */
+/* Kolom Kiri (Sidebar In-Canvas): TETAP DIAM & Posisi Relative untuk Tombol Bawah */
 .st-key-canvas_sidebar {
-    padding: 2.2rem 1.35rem 1.65rem 2rem !important;
+    position: relative !important;
+    padding: 2.2rem 1.35rem 5.5rem 2rem !important;
     border-right: 1.5px solid rgba(255, 255, 255, 0.65);
     height: calc(100vh - 3.2rem) !important;
     max-height: 900px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     scrollbar-width: none;
-    display: flex !important;
-    flex-direction: column !important;
 }
 .st-key-canvas_sidebar::-webkit-scrollbar {
     display: none;
@@ -242,15 +241,21 @@ header[data-testid="stHeader"] {
     border-top: 1px solid rgba(13, 122, 118, 0.15);
 }
 
-/* Tombol Bersih Keluar / Ganti Sesi di Pojok Kiri Bawah Sidebar */
+/* Tombol Keluar / Ganti Sesi DIKUNCI PATEN DI POJOK KIRI BAWAH SIDEBAR */
 .st-key-nav_session {
-    margin-top: auto !important;
-    padding-top: 1rem !important;
-    border-top: 1px solid rgba(13, 122, 118, 0.15);
+    position: absolute !important;
+    bottom: 1.5rem !important;
+    left: 2rem !important;
+    right: 1.35rem !important;
+    padding-top: 0.9rem !important;
+    border-top: 1px solid rgba(13, 122, 118, 0.16);
+    background: transparent !important;
+    z-index: 20;
 }
 .st-key-nav_session button {
-    background: rgba(255, 255, 255, 0.55) !important;
+    background: rgba(255, 255, 255, 0.58) !important;
     border: 1px solid rgba(13, 122, 118, 0.22) !important;
+    margin-bottom: 0 !important;
 }
 
 /* Topbar: Welcome Back (Nama Lengkap) di Kiri & User Profile di Kanan Atas */
@@ -446,7 +451,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     text-overflow: ellipsis;
 }
 
-/* Progress Bar Card ala "Games statistic" */
+/* Progress Bar Card */
 .stat-bar-track {
     width: 100%;
     height: 8px;
@@ -465,7 +470,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     height: 100%;
 }
 
-/* Promo Banner Kanan Bawah ala "Setup training for next week" */
+/* Promo Banner Kanan Bawah */
 .training-banner {
     background: linear-gradient(115deg, #095d5c 0%, #148582 60%, #106c6e 100%);
     border-radius: 24px;
@@ -571,6 +576,10 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
         border-bottom: 1px solid rgba(255, 255, 255, 0.5);
         padding: 1.4rem !important;
     }
+    .st-key-nav_session {
+        position: static !important;
+        margin-top: 1.2rem !important;
+    }
     .st-key-canvas_main {
         height: auto !important;
         max-height: none !important;
@@ -579,7 +588,6 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 }
 </style>''', unsafe_allow_html=True)
 
-# SVG Grafik Kubus 3D Satu Baris (Mencegah bug markdown code-block yang memunculkan teks </div>)
 CUBE_SVG = '<svg width="105" height="98" viewBox="0 0 110 105" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="72" cy="24" r="18" fill="#8be23b"/><rect x="18" y="34" width="28" height="28" rx="7" transform="rotate(-18 18 34)" fill="#ffffff" fill-opacity="0.92"/><rect x="64" y="52" width="26" height="26" rx="6" transform="rotate(22 64 52)" fill="#e8f8f7"/><circle cx="48" cy="76" r="8" fill="#b469ff"/><ellipse cx="62" cy="94" rx="38" ry="8" fill="#064544" fill-opacity="0.55"/></svg>'
 
 
@@ -714,7 +722,7 @@ with col_nav:
                     use_container_width=True,
                 )
 
-        # Pojok kiri bawah sidebar: Tombol bersih Keluar / Ganti Sesi
+        # Pojok kiri bawah sidebar: Tombol bersih Keluar / Ganti Sesi (dikunci di bawah dengan position: absolute)
         with st.container(key='nav_session'):
             sess_active = screen == 'Ganti Sesi'
             sess_icon_color = '#ffffff' if sess_active else '#0d7a76'
@@ -976,9 +984,12 @@ with col_main:
             cb = bb = None
             colors = []
             blacks = []
+            page_toner_pcts = {}
             roman = 0
             selection = ''
             force = False
+            full_color_complexity_mode = False
+            manual_toner_pct = 100.0
             sensitivity = 25
             pct = 0.10
             run_analysis_clicked = False
@@ -1011,11 +1022,11 @@ with col_main:
                         st.caption(f'📄 Berkas aktif: **{uploaded[0]}**')
                         st.button('Lepas PDF', key=f'remove:{method}', on_click=remove_pdf, args=(upload_key, pdf_key, method))
 
-                    # Adopsi Parameter Deteksi Warna dari app (1).py langsung di dalam kartu Naskah & Halaman
+                    # Parameter Deteksi Warna & Kompleksitas Toner di dalam kartu Naskah & Halaman
                     if method == 'Analisis warna otomatis':
                         st.markdown(
                             '<div style="font-size: 0.84rem; font-weight: 700; color: #0d7a76; margin: 0.55rem 0 0.35rem 0;">'
-                            '🎨 Parameter Deteksi Warna</div>',
+                            '🎨 Parameter Deteksi Warna &amp; Kompleksitas Toner</div>',
                             unsafe_allow_html=True,
                         )
                         force = draft_widget(
@@ -1023,6 +1034,17 @@ with col_main:
                             'force_bw',
                             'Paksa SEMUA Halaman Menjadi BW',
                             value=False,
+                        )
+                        full_color_complexity_mode = draft_widget(
+                            st.checkbox,
+                            'full_color_complexity',
+                            'Cetak Full Colour — Hitung Harga Proporsional % Kompleksitas Toner Warna Tiap Halaman',
+                            value=False,
+                            disabled=force,
+                            help=(
+                                'Jika aktif, harga cetak warna dihitung berdasarkan persentase pemakaian/kompleksitas '
+                                'toner warna di tiap halaman dibandingkan harga 100% warna blok.'
+                            ),
                         )
                         sc1, sc2 = st.columns(2)
                         sensitivity = draft_widget(
@@ -1070,6 +1092,26 @@ with col_main:
                     ca, cb_col = st.columns(2)
                     color = draft_widget(ca.number_input, 'color', 'Halaman warna', min_value=0, value=0)
                     bw = draft_widget(cb_col.number_input, 'bw', 'Halaman BW', min_value=0, value=0)
+                    full_color_complexity_mode = draft_widget(
+                        st.checkbox,
+                        'manual_fc_complexity',
+                        'Gunakan reduksi harga berdasarkan rata-rata % pemakaian toner warna',
+                        value=False,
+                    )
+                    if full_color_complexity_mode and (color + bw) > 0:
+                        manual_toner_pct = draft_widget(
+                            st.slider,
+                            'manual_toner_pct',
+                            'Rata-rata kompleksitas / cakupan toner warna per halaman (%)',
+                            min_value=1.0,
+                            max_value=100.0,
+                            value=35.0,
+                            step=1.0,
+                        )
+                        page_toner_pcts = {
+                            pno: (float(manual_toner_pct) if pno <= color else 0.0)
+                            for pno in range(1, color + bw + 1)
+                        }
 
             with st.container(key='card_spek'):
                 st.markdown(
@@ -1109,7 +1151,7 @@ with col_main:
                             saved = st.session_state.get('analysis')
 
                             if run_analysis_clicked:
-                                with st.spinner('Memindai spektrum halaman...'):
+                                with st.spinner('Memindai spektrum & persentase toner warna tiap halaman...'):
                                     st.session_state['analysis'] = (
                                         *current_sig,
                                         process_and_split_pdf(data, force, sensitivity, pct, mode, total),
@@ -1117,12 +1159,18 @@ with col_main:
                                 saved = st.session_state.get('analysis')
 
                             if saved and saved[:5] == current_sig:
-                                colors, blacks, cb, bb, raw_color_pages = saved[5]
+                                unpacked = saved[5]
+                                if len(unpacked) == 6:
+                                    colors, blacks, cb, bb, raw_color_pages, page_toner_pcts = unpacked
+                                else:
+                                    colors, blacks, cb, bb, raw_color_pages = unpacked
+                                    page_toner_pcts = {p: 100.0 for p in colors}
+
                                 if mode == 'Duplex (Bolak-balik)' and raw_color_pages and set(raw_color_pages) != set(colors):
                                     st.success('🔄 Duplex aktif: halaman pasangan otomatis ikut dimasukkan ke hasil warna.')
                             else:
                                 st.info('Tekan tombol "Jalankan Analisis PDF" pada kartu Naskah & Halaman untuk menghitung halaman.')
-                                colors, blacks = [], []
+                                colors, blacks, page_toner_pcts = [], [], {}
                         else:
                             if roman > total:
                                 raise ValueError(f'Preliminaries ({roman}) melebihi total halaman ({total}).')
@@ -1141,9 +1189,15 @@ with col_main:
                         st.stop()
 
                 if colors or blacks:
-                    with st.expander('Lihat daftar sebaran nomor halaman PDF'):
+                    with st.expander('Lihat daftar sebaran nomor halaman & persentase toner warna'):
                         st.write('**Halaman Warna:**', ', '.join(map(str, colors)) or 'Tidak ada')
                         st.write('**Halaman Hitam Putih:**', ', '.join(map(str, blacks)) or 'Tidak ada')
+                        if page_toner_pcts and colors:
+                            toner_preview = ', '.join(
+                                f'Hlm {p}: {page_toner_pcts.get(p, 0.0):.1f}%'
+                                for p in colors[:60]
+                            )
+                            st.caption(f'📊 **Estimasi Kompleksitas Toner Warna per Halaman:** {toner_preview}')
 
         with col_right:
             total_pages_count = color + bw
@@ -1151,9 +1205,25 @@ with col_main:
             bw_ratio_pct = 100 - color_ratio_pct if total_pages_count > 0 else 100
 
             with st.container(key='card_total'):
-                r = calculate(config, size, paper, mode, binding, qty, color, bw, override) if total_pages_count > 0 else {
-                    'unit': 0, 'total': 0, 'dp': 0, 'discount': 0, 'finishing_discount': 0, 'finishing': 0, 'color_rate': 0, 'bw_rate': 0, 'full': 0
+                r = calculate(
+                    config,
+                    size,
+                    paper,
+                    mode,
+                    binding,
+                    qty,
+                    color,
+                    bw,
+                    override=override,
+                    full_color_complexity_mode=full_color_complexity_mode,
+                    page_toner_pcts=page_toner_pcts,
+                    color_pages_list=colors,
+                ) if total_pages_count > 0 else {
+                    'unit': 0, 'total': 0, 'dp': 0, 'discount': 0, 'finishing_discount': 0,
+                    'finishing': 0, 'color_rate': 0, 'bw_rate': 0, 'full': 0,
+                    'avg_toner_pct': 0.0, 'toner_savings_total': 0, 'toner_savings_unit': 0,
                 }
+
                 st.markdown(
                     f'<div class="card-header-row">'
                     f'<h3 class="card-title">Statistik &amp; Ringkasan Biaya</h3>'
@@ -1175,13 +1245,27 @@ with col_main:
                     unsafe_allow_html=True,
                 )
 
+                if full_color_complexity_mode and total_pages_count > 0:
+                    st.markdown(
+                        f'<div style="background: rgba(13, 122, 118, 0.10); border: 1px solid rgba(13, 122, 118, 0.25); '
+                        f'border-radius: 14px; padding: 0.7rem 0.95rem; margin-bottom: 0.85rem; font-size: 0.8rem; color: #0b5855;">'
+                        f'🎨 <b>Mode Kompleksitas Toner Aktif:</b> Rata-rata cakupan warna <b>{r["avg_toner_pct"]}%</b> per halaman • '
+                        f'Hemat <b>{rp(r["toner_savings_unit"])}/eks</b> (Total hemat <b>{rp(r["toner_savings_total"])}</b> dibanding tarif blok 100%)'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
                 if total_pages_count > 0:
                     c_dl1, c_dl2 = st.columns(2)
+                    toner_note = (
+                        f"\nMode Kompleksitas Toner: Rata-rata {r['avg_toner_pct']}% (Hemat {rp(r['toner_savings_total'])} dari harga blok 100%)"
+                        if full_color_complexity_mode else ""
+                    )
                     receipt = f"""LITNUS PRINTING - ESTIMASI BIAYA
 Judul: {title}
 Tarif versi: {version}
 Spesifikasi: {size} | {paper} | {mode} | {binding}
-Isi buku: {color} halaman warna + {bw} BW
+Isi buku: {color} halaman warna + {bw} BW{toner_note}
 Jumlah: {qty} eksemplar
 Harga/eks: {rp(r['unit'])}
 Total: {rp(r['total'])}
@@ -1193,7 +1277,7 @@ Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%"""
 Pemesan: {user_full_name}
 Judul buku: {title}
 Spesifikasi: {size} | {paper} | {mode} | {binding}
-Isi buku: {color} halaman warna + {bw} halaman hitam putih ({qty} eksemplar)
+Isi buku: {color} halaman warna + {bw} halaman hitam putih ({qty} eksemplar){toner_note}
 Harga per eksemplar: {rp(r['unit'])}
 Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%
 TOTAL TAGIHAN: {rp(r['total'])}
@@ -1220,9 +1304,12 @@ Rekening PT Literasi Nusantara Abadi Grup:
             svg_wallet = icon_svg('<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>', '#ffffff', 24)
             svg_star = icon_svg('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>', '#ffffff', 24)
 
+            stat_label_1 = 'TONER WARNA' if full_color_complexity_mode else 'RASIO WARNA'
+            stat_val_1 = f'{r["avg_toner_pct"]}%' if full_color_complexity_mode else f'{color_ratio_pct}%'
+
             st.markdown(
                 f'<div class="stat-grid-4">'
-                f'<div class="stat-glass-box"><div class="stat-badge purple">{svg_pie}</div><div class="stat-meta"><span class="stat-meta-label">RASIO WARNA</span><span class="stat-meta-val">{color_ratio_pct}%</span></div></div>'
+                f'<div class="stat-glass-box"><div class="stat-badge purple">{svg_pie}</div><div class="stat-meta"><span class="stat-meta-label">{stat_label_1}</span><span class="stat-meta-val">{stat_val_1}</span></div></div>'
                 f'<div class="stat-glass-box"><div class="stat-badge pink">{svg_tag}</div><div class="stat-meta"><span class="stat-meta-label">TOTAL TAGIHAN</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["total"])}</span></div></div>'
                 f'<div class="stat-glass-box"><div class="stat-badge orange">{svg_wallet}</div><div class="stat-meta"><span class="stat-meta-label">DP ({config["dp"]}%)</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["dp"])}</span></div></div>'
                 f'<div class="stat-glass-box"><div class="stat-badge teal">{svg_star}</div><div class="stat-meta"><span class="stat-meta-label">HARGA / EKS</span><span class="stat-meta-val" style="font-size: 1.18rem;">{rp(r["unit"])}</span></div></div>'
