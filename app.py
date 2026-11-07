@@ -1,6 +1,7 @@
 import copy
 import json
 import hashlib
+from urllib.parse import quote
 import fitz
 import streamlit as st
 from engine import parse_page_input, add_duplex_pairs, split_pdf_by_pages, process_and_split_pdf, format_rupiah as rp
@@ -9,19 +10,32 @@ from settings import DEFAULT, setup, read, save, calculate, validate
 st.set_page_config(page_title='Litnus • Studio Cetak',page_icon='📚',layout='wide')
 st.markdown('''<style>
 .block-container { max-width: 1200px; padding-top: 5rem; }
+.stApp { background-image: radial-gradient(ellipse at 100% 0%, #a69dd46b, transparent 48%),
+    radial-gradient(ellipse at 0% 0%, #72b6ad6b, transparent 65%); }
+[data-testid="stSidebar"] { border-right: 1px solid #75a9a64d; }
+[data-testid="stSidebar"] button { min-height: 44px; text-align: left; justify-content: flex-start; }
+[data-testid="stSidebar"] button img { width: 18px; height: 18px; vertical-align: middle; }
+[data-testid="stSidebar"] button[kind="primary"] img { filter: brightness(0) invert(1); }
 .intro {
     padding: 26px 30px;
-    background: linear-gradient(120deg, rgba(16,185,129,.15), rgba(14,165,233,.09));
-    border: 1px solid rgba(16,185,129,.35);
+    background: linear-gradient(120deg, #eaf8f656, #e9e1fa38);
+    border: 1px solid #ffffff75;
     border-radius: 20px;
     margin-bottom: 18px;
 }
 .intro h1 { letter-spacing: -.04em; margin: 0 0 8px; }
 .intro p { margin: 0; }
-.trail { padding: 12px 0 22px; font-size: 14px; }
+.login-card {
+    max-width: 460px; margin: 18px auto; padding: 38px 24px; text-align: center;
+    color: #182c58; background: linear-gradient(145deg, #f3f7ff, #d7e5ff);
+    border: 1px solid white; border-radius: 30px;
+    box-shadow: 12px 16px 38px #28478630, inset 2px 2px 8px white;
+}
+.login-card h2 { color: #182c58; margin-top: 12px; }
+.st-key-google_login button { background: #2355cb; color: white; min-height: 46px; }
 div[data-testid="stMetric"] {
-    background: rgba(16,185,129,.08);
-    border: 1px solid rgba(16,185,129,.22);
+    background: #eaf8f650;
+    border: 1px solid #ffffff75;
     padding: 18px;
     border-radius: 16px;
 }
@@ -31,6 +45,47 @@ div[data-testid="stMetric"] {
     .intro h1 { font-size: 30px; }
 }
 </style><div class="intro"><h1>Studio Cetak Litnus</h1><p>Dari naskah hingga siap produksi.</p></div>''',unsafe_allow_html=True)
+
+MENU = {
+    'Kalkulator Cepat': ('Jumlah halaman saja', '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h2m4 0h2m-8 4h2m4 0h2"/>'),
+    'Deteksi Warna PDF': ('Analisis warna otomatis', '<path d="M12 3s-6 7-6 12a6 6 0 0 0 12 0c0-5-6-12-6-12Z"/><path d="M9 15a3 3 0 0 0 3 3"/>'),
+    'Pilah Halaman PDF': ('Pilih halaman manual', '<path d="M7 3h8l4 4v14H7zM15 3v5h4M10 12h6m-6 4h6"/>'),
+    'Admin Tarif': (None, '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>'),
+}
+
+
+def icon_svg(path):
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#087580" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{path}</svg>'
+
+
+def go_to(page):
+    st.session_state['workspace'] = page
+
+
+def draft_widget(widget, field, label, **kwargs):
+    """Restore widget values after Streamlit removes widgets from another menu."""
+    stored = f'draft:{method}:{field}'
+    key = f'widget:{stored}'
+    if key not in st.session_state and stored in st.session_state:
+        st.session_state[key] = st.session_state[stored]
+        kwargs.pop('value', None)
+        kwargs.pop('index', None)
+    value = widget(label, key=key, **kwargs)
+    st.session_state[stored] = value
+    return value
+
+
+def remember_pdf(upload_key, pdf_key):
+    upload = st.session_state[upload_key]
+    if upload is not None:
+        st.session_state[pdf_key] = (upload.name, upload.getvalue())
+    else:
+        st.session_state.pop(pdf_key, None)
+
+
+def remove_pdf(upload_key, pdf_key):
+    st.session_state.pop(pdf_key, None)
+    st.session_state.pop(upload_key, None)
 try:
     secrets = st.secrets.to_dict()
 except FileNotFoundError:
@@ -44,18 +99,32 @@ if configured:
 else: st.warning('Mode pratinjau: memakai tarif bawaan. Hubungkan database untuk menyimpan harga admin.')
 logged_in=st.user.get('is_logged_in',False)
 admin=logged_in and st.user.get('email') in secrets.get('admin_emails',[])
+screen = st.session_state.setdefault('workspace', 'Admin Tarif' if logged_in else 'Kalkulator Cepat')
 with st.sidebar:
     st.title('Litnus Printing')
-    screen=st.radio('Ruang kerja',['Produksi','Admin'])
+    for page, (_, path) in MENU.items():
+        icon = quote(icon_svg(path), safe='')
+        st.button(
+            f'![](data:image/svg+xml,{icon}) {page}',
+            key=f'nav_{page}', type='primary' if screen == page else 'secondary',
+            on_click=go_to, args=(page,), use_container_width=True,
+        )
     st.caption(f'Versi tarif: {version or "bawaan"}')
     if logged_in: st.button('Keluar',on_click=st.logout)
-if screen=='Admin':
+if screen=='Admin Tarif':
     if not admin:
-        st.subheader('Masuk sebagai admin')
-        st.write('Gunakan akun yang tercantum pada daftar admin.')
-        if 'auth' in secrets:
-            if st.button('Masuk dengan akun Google'): st.login()
-        else: st.info('Login belum dikonfigurasi. Ikuti README untuk mengaktifkannya.')
+        badge = icon_svg(MENU['Admin Tarif'][1])
+        st.markdown(f'<div class="login-card">{badge}<h2>Ruang Admin</h2><p>Masuk untuk mengelola tarif dan diskon cetak.</p></div>', unsafe_allow_html=True)
+        _, actions, _ = st.columns([1, 2, 1])
+        with actions:
+            if logged_in:
+                st.warning('Akun ini belum terdaftar sebagai admin. Keluar untuk memakai akun lain.')
+            elif 'auth' in secrets:
+                if st.button('Masuk dengan Google', key='google_login', type='primary', use_container_width=True):
+                    st.login()
+            else:
+                st.info('Login belum dikonfigurasi. Ikuti README untuk mengaktifkannya.')
+            st.button('Lanjut tanpa login', on_click=go_to, args=('Kalkulator Cepat',), use_container_width=True)
         st.stop()
     st.subheader('Harga dan diskon')
     if not configured: st.info('Hubungkan database terlebih dahulu.'); st.stop()
@@ -102,40 +171,57 @@ if screen=='Admin':
                 st.json({'sebelum':old,'sesudah':new})
     st.stop()
 
-st.markdown('<div class="trail">01 Naskah &nbsp; / &nbsp; 02 Spesifikasi &nbsp; / &nbsp; 03 Periksa &nbsp; / &nbsp; 04 Siap cetak</div>',unsafe_allow_html=True)
+method = MENU[screen][0]
+heading, information = st.columns([8, 1])
+heading.header(screen)
+with information.popover('ⓘ', help='Petunjuk menu'):
+    st.write({
+        'Kalkulator Cepat': 'Masukkan jumlah halaman warna dan hitam putih untuk menghitung biaya tanpa PDF.',
+        'Deteksi Warna PDF': 'Unggah PDF dan tekan Analisis PDF. Hasilnya mengikuti pengaturan deteksi dan mode cetak.',
+        'Pilah Halaman PDF': 'Unggah PDF, isi jumlah preliminaries, lalu tulis halaman warna. Nomor isi 1 dihitung setelah preliminaries.',
+    }[screen])
+    st.caption('Draf tiap menu tersimpan selama sesi ini.')
 left,right=st.columns([1.7,1],gap='large')
 with left:
-    st.subheader('1. Naskah')
-    method = st.radio(
-        'Cara input',
-        ['Analisis warna otomatis', 'Pilih halaman manual', 'Jumlah halaman saja'],
-        horizontal=True,
-    )
-    title=st.text_input('Judul buku',value='Pesanan Litnus')
+    st.subheader('Naskah')
+    title = draft_widget(st.text_input, 'title', 'Judul buku', value='Pesanan Litnus')
     uploaded=None; color=bw=0; cb=bb=None; colors=[]; blacks=[]
     if method!='Jumlah halaman saja':
-        uploaded=st.file_uploader('Unggah PDF isi buku',type='pdf')
+        upload_key, pdf_key = f'upload:{method}', f'pdf:{method}'
+        st.file_uploader(
+            'Unggah PDF isi buku', type='pdf', key=upload_key,
+            on_change=remember_pdf, args=(upload_key, pdf_key),
+        )
+        uploaded = st.session_state.get(pdf_key)
+        if uploaded:
+            st.caption(f'PDF aktif · {uploaded[0]}')
+            st.button('Lepas PDF', key=f'remove:{method}', on_click=remove_pdf, args=(upload_key, pdf_key))
         if method == 'Pilih halaman manual':
-            roman = st.number_input(
-                'Jumlah halaman preliminaries',
+            roman = draft_widget(
+                st.number_input, 'roman', 'Jumlah halaman preliminaries',
                 min_value=0, value=12, step=1,
                 help='Hitung halaman PDF sebelum halaman isi bernomor 1. Isi 0 jika tidak ada.',
             )
             st.caption(f'Halaman isi 1 berada pada halaman PDF {roman + 1}.')
-            selection = st.text_area('Halaman warna', placeholder='iii-v, 1, 5-9')
+            selection = draft_widget(st.text_area, 'selection', 'Halaman warna', placeholder='iii-v, 1, 5-9', help='Gunakan nomor Romawi untuk halaman awal dan nomor angka untuk isi buku. Pisahkan dengan koma.')
     else:
-        a,b=st.columns(2); color=a.number_input('Halaman warna',0,value=0); bw=b.number_input('Halaman BW',0,value=0)
+        a, b = st.columns(2)
+        color = draft_widget(a.number_input, 'color', 'Halaman warna', min_value=0, value=0)
+        bw = draft_widget(b.number_input, 'bw', 'Halaman BW', min_value=0, value=0)
     st.subheader('2. Spesifikasi')
     a,b=st.columns(2)
-    size=a.selectbox('Ukuran',list(config['prices'])); paper=b.selectbox('Kertas',['HVS 70','BP 57'])
-    mode=a.selectbox('Mode cetak',['Duplex (Bolak-balik)','Simplex (Satu Sisi)']); binding=b.selectbox('Jilid',['Soft Cover','Hard Cover'])
-    qty=st.number_input('Jumlah eksemplar',1,value=1)
+    size = draft_widget(a.selectbox, 'size', 'Ukuran', options=list(config['prices']))
+    paper = draft_widget(b.selectbox, 'paper', 'Kertas', options=['HVS 70','BP 57'])
+    mode = draft_widget(a.selectbox, 'mode', 'Mode cetak', options=['Duplex (Bolak-balik)','Simplex (Satu Sisi)'])
+    binding = draft_widget(b.selectbox, 'binding', 'Jilid', options=['Soft Cover','Hard Cover'])
+    qty = draft_widget(st.number_input, 'qty', 'Jumlah eksemplar', min_value=1, value=1)
     override=None
     if admin:
         with st.expander('Diskon khusus pesanan'):
-            if st.checkbox('Ganti diskon isi otomatis'): override=st.number_input('Diskon isi (%)',0,100,value=0)
+            if draft_widget(st.checkbox, 'override_enabled', 'Ganti diskon isi otomatis'):
+                override = draft_widget(st.number_input, 'override', 'Diskon isi (%)', min_value=0, max_value=100, value=0)
     if uploaded:
-        data=uploaded.getvalue()
+        data=uploaded[1]
         try:
             with fitz.open(stream=data,filetype='pdf') as doc:
                 if doc.needs_pass: raise ValueError('PDF terkunci. Unggah PDF tanpa kata sandi.')
@@ -144,10 +230,9 @@ with left:
             st.caption(f'{total} halaman PDF')
             if method=='Analisis warna otomatis':
                 with st.expander('Pengaturan deteksi'):
-                    force=st.checkbox('Cetak seluruh halaman sebagai BW')
-                    st.caption('File tetap mempertahankan warna asli. Atur grayscale pada mesin saat mencetak BW.')
-                    sensitivity=st.slider('Batas kontras warna',5,50,25)
-                    pct=st.slider('Area warna minimum (%)',0.01,5.0,0.1)
+                    force = draft_widget(st.checkbox, 'force_bw', 'Cetak seluruh halaman sebagai BW', help='Warna asli PDF tetap ada. Aktifkan grayscale pada mesin cetak bila diperlukan.')
+                    sensitivity = draft_widget(st.slider, 'sensitivity', 'Batas kontras warna', min_value=5, max_value=50, value=25)
+                    pct = draft_widget(st.slider, 'pct', 'Area warna minimum (%)', min_value=0.01, max_value=5.0, value=0.1)
                 if st.button('Analisis PDF',type='primary'):
                     with st.spinner('Memeriksa halaman…'):
                         st.session_state['analysis']=(hashlib.sha256(data).hexdigest(),mode,force,sensitivity,pct,process_and_split_pdf(data,force,sensitivity,pct,mode,total))
@@ -157,7 +242,7 @@ with left:
             else:
                 if roman > total:
                     raise ValueError(f'Jumlah preliminaries melebihi {total} halaman PDF.')
-                pair=st.checkbox('Sertakan pasangan duplex',value=True,disabled=mode.startswith('Simplex'))
+                pair = draft_widget(st.checkbox, 'pair', 'Sertakan pasangan duplex', value=True, disabled=mode.startswith('Simplex'))
                 colors,_,errors,_=parse_page_input(selection,total,roman)
                 if errors: st.error(' • '.join(errors)); st.stop()
                 if colors:
