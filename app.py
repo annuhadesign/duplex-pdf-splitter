@@ -15,6 +15,7 @@ from engine import (
     format_rupiah as rp,
 )
 from settings import DEFAULT, setup, read, save, calculate, validate, connect
+from quote_card import render_quote_card
 
 BRAND_ASSETS = Path(__file__).resolve().parent / 'assets'
 
@@ -766,43 +767,6 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     height: 100%;
 }
 
-.training-banner {
-    background: linear-gradient(115deg, #095d5c 0%, #148582 60%, #106c6e 100%);
-    border-radius: 24px;
-    padding: 1.35rem 1.6rem;
-    color: #ffffff;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 14px 28px -8px rgba(9, 93, 92, 0.38);
-    margin-top: 0.4rem;
-    margin-bottom: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.training-banner .sub {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.78);
-}
-.training-banner h4 {
-    color: #ffffff;
-    font-size: 1.2rem;
-    font-weight: 700;
-    line-height: 1.3;
-    margin: 0.3rem 0 0.85rem 0;
-}
-.banner-pill-btn {
-    display: inline-block;
-    background: rgba(235, 247, 246, 0.94);
-    color: #095d5c;
-    font-size: 0.76rem;
-    font-weight: 600;
-    padding: 0.44rem 1rem;
-    border-radius: 99px;
-}
 
 .stDownloadButton button, .stButton button {
     border-radius: 14px !important;
@@ -1000,14 +964,6 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
     .topbar-wrap {
         align-items: flex-start !important;
     }
-    .training-banner {
-        padding: 1rem;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    .training-banner > div:first-child {
-        max-width: 100% !important;
-    }
     .st-key-canvas_main [data-testid="stNumberInputContainer"] {
         min-height: 44px;
     }
@@ -1021,20 +977,6 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 }
 </style>''', unsafe_allow_html=True)
 
-CUBE_SVG = '<svg width="105" height="98" viewBox="0 0 110 105" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="72" cy="24" r="18" fill="#8be23b"/><rect x="18" y="34" width="28" height="28" rx="7" transform="rotate(-18 18 34)" fill="#ffffff" fill-opacity="0.92"/><rect x="64" y="52" width="26" height="26" rx="6" transform="rotate(22 64 52)" fill="#e8f8f7"/><circle cx="48" cy="76" r="8" fill="#b469ff"/><ellipse cx="62" cy="94" rx="38" ry="8" fill="#064544" fill-opacity="0.55"/></svg>'
-
-
-def render_training_banner(sub_text="DON'T FORGET"):
-    return (
-        f'<div class="training-banner">'
-        f'<div style="max-width: 66%;">'
-        f'<div class="sub">{sub_text}</div>'
-        f'<h4>Siapkan pracetak &amp; cek bleed 5mm</h4>'
-        f'<span class="banner-pill-btn">Standar Produksi Litnus</span>'
-        f'</div>'
-        f'<div style="flex-shrink: 0;">{CUBE_SVG}</div>'
-        f'</div>'
-    )
 
 
 # ==========================================
@@ -1265,7 +1207,8 @@ with col_main:
                         else:
                             st.session_state['workspace'] = 'Kalkulator Cepat'
                             st.rerun()
-            st.markdown(render_training_banner('PANDUAN PRACETAK'), unsafe_allow_html=True)
+            with col_sess_right:
+                render_quote_card(screen)
             st.stop()
 
         # ==========================================
@@ -1317,11 +1260,14 @@ with col_main:
                             f'</div>',
                             unsafe_allow_html=True,
                         )
-                    st.markdown(render_training_banner('PANDUAN PRACETAK'), unsafe_allow_html=True)
+                    render_quote_card(screen)
                 st.stop()
 
             if not configured:
                 st.info('Hubungkan database PostgreSQL di secrets.toml untuk menyimpan perubahan tarif.')
+                _, quote_column = st.columns([1.15, 1], gap='medium')
+                with quote_column:
+                    render_quote_card(screen)
                 st.stop()
 
             draft = copy.deepcopy(config)
@@ -1409,6 +1355,9 @@ with col_main:
                     for date, actor, rsn, old_d, new_d in records:
                         with st.expander(f'{date} • {actor} • {rsn}'):
                             st.json({'sebelum': old_d, 'sesudah': new_d})
+            _, quote_column = st.columns([1.15, 1], gap='medium')
+            with quote_column:
+                render_quote_card(screen)
             st.stop()
 
         # ==========================================
@@ -1778,6 +1727,6 @@ Rekening PT Literasi Nusantara Abadi Grup:
                 unsafe_allow_html=True,
             )
 
-            # BANNER KANAN BAWAH
-            st.markdown(render_training_banner("DON'T FORGET"), unsafe_allow_html=True)
+            render_quote_card(screen)
+
 
