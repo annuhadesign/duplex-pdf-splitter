@@ -1,6 +1,8 @@
 import copy
 import os
 import hashlib
+import base64
+from pathlib import Path
 from urllib.parse import quote
 import fitz
 import streamlit as st
@@ -14,9 +16,11 @@ from engine import (
 )
 from settings import DEFAULT, setup, read, save, calculate, validate, connect
 
+BRAND_ASSETS = Path(__file__).resolve().parent / 'assets'
+
 st.set_page_config(
-    page_title='LitnusPro • Studio Cetak v1.2.5',
-    page_icon='📚',
+    page_title='Litnus PrintLab',
+    page_icon=str(BRAND_ASSETS / 'icon-192.png'),
     layout='wide',
     initial_sidebar_state='collapsed',
 )
@@ -365,19 +369,16 @@ header[data-testid="stHeader"] {
 }
 
 .brand-logo {
-    font-size: 2.05rem;
-    font-weight: 800;
-    color: #142829;
-    letter-spacing: -0.03em;
     padding: 0.1rem 0.5rem 1.5rem 0.5rem;
-    line-height: 1.1;
+    line-height: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
-.brand-logo span {
-    font-weight: 800;
-    background: linear-gradient(95deg, #0b6e6d 0%, #178d89 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: #0d7a76;
+.brand-logo img {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    height: auto;
 }
 
 .st-key-nav_menu button, .st-key-nav_admin button, .st-key-nav_session button {
@@ -1134,7 +1135,12 @@ with st.container(key='canvas_shell'):
 with col_nav:
     with st.container(key='canvas_sidebar'):
         with st.container():
-            st.markdown('<div class="brand-logo">Litnus<span>Pro</span></div>', unsafe_allow_html=True)
+            wordmark_data = base64.b64encode((BRAND_ASSETS / 'wordmark.png').read_bytes()).decode('ascii')
+            st.markdown(
+                f'<div class="brand-logo"><img src="data:image/png;base64,{wordmark_data}" '
+                f'alt="Litnus PrintLab" width="2044" height="257"></div>',
+                unsafe_allow_html=True,
+            )
 
             nav_menu = st.container(key='nav_menu')
             nav_admin = st.container(key='nav_admin') if logged_in else None
@@ -1774,3 +1780,4 @@ Rekening PT Literasi Nusantara Abadi Grup:
 
             # BANNER KANAN BAWAH
             st.markdown(render_training_banner("DON'T FORGET"), unsafe_allow_html=True)
+
