@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b6e6d">
+  <meta name="apple-mobile-web-app-title" content="Litnus PrintLab">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Litnus PrintLab</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header>
+    <img src="icons/wordmark.png" alt="Litnus PrintLab" width="2044" height="257">
+    <nav aria-label="Akses aplikasi">
+      <button id="install" hidden>Instal aplikasi</button>
+      <a href="https://litnus-printlab.streamlit.app/" target="_blank" rel="noopener">Buka langsung ↗</a>
+    </nav>
+  </header>
+  <p id="status" role="status" hidden></p>
+  <main>
+    <iframe title="Aplikasi Litnus PrintLab" src="https://litnus-printlab.streamlit.app/?embed=true" allow="clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </main>
+  <footer>Jika halaman kosong atau login Google tidak terbuka, pilih <b>Buka langsung</b>.</footer>
+  <noscript>Aktifkan JavaScript untuk menggunakan aplikasi. <a href="https://litnus-printlab.streamlit.app/">Buka Litnus PrintLab</a>.</noscript>
+</body>
+</html>

@@ -1,37 +1,68 @@
-# Litnus Studio Cetak
+# Litnus PrintLab — paket identitas aplikasi
 
-Unggah isi folder ini ke root repositori GitHub akun yang terhubung ke Streamlit. Entrypoint: app.py. Jangan mengunggah kredensial asli.
+Pembaruan branding berdasarkan `app.py` v1.2.5 dari repositori
+`annuhadesign/duplex-pdf-splitter`. Paket ini belum diunggah ke repositori atau diterbitkan.
 
-1. Buat database PostgreSQL eksternal dan salin connection string dengan SSL.
-2. Buat OAuth client Google tipe Web. Tambahkan authorized redirect URI: https://NAMA-APP.streamlit.app/oauth2callback. Sesuaikan audience/testing users pada Google OAuth.
-3. Buka Settings > Secrets pada aplikasi Streamlit. Salin secrets.example.toml dan ganti semua placeholder. Isi admin_emails dengan email Google admin yang tepat. Jangan commit secrets.toml ke GitHub.
-4. Jalankan aplikasi. Tabel harga dan riwayat dibuat otomatis; user database membutuhkan izin membuat tabel. Tarif awal mengikuti kode lama.
-5. Admin login lewat menu Admin. Ubah tarif, lihat simulasi, isi alasan, lalu simpan. Semua sesi membaca tarif terbaru saat rerun. Simpan ditolak jika versi telah berubah oleh admin lain.
+## 1. Memasang logo dan favicon pada aplikasi Streamlit
 
-Tanpa database, aplikasi menyediakan pratinjau memakai tarif bawaan; admin tidak bisa menyimpan. Saat database gagal diakses, kalkulasi dihentikan agar tidak menggunakan tarif lama secara diam-diam.
+Salin isi folder `streamlit/` ke root repositori yang sudah dipakai aplikasi.
+Perubahan yang perlu diunggah: `app.py` dan seluruh folder `assets/`.
+`engine.py`, `settings.py`, `requirements.txt`, serta `.streamlit/config.toml`
+disertakan sebagai dependensi sumber, tanpa perubahan perilaku perhitungan.
+Jangan menghapus Secrets pada pengaturan Streamlit Cloud.
 
-Lokal: pip install -r requirements.txt lalu streamlit run app.py. Untuk kredensial lokal salin contoh menjadi .streamlit/secrets.toml (jangan commit). Python 3.11 disarankan.
+Setelah deployment selesai, muat ulang aplikasi. Judul tab menjadi
+**Litnus PrintLab**, favicon menggunakan **LP**, dan logo sidebar memakai
+wordmark yang sudah dipilih. Halaman masuk menggunakan sidebar yang sama.
+Aturan scroll dan layout mobile v1.2.5 dipertahankan.
 
-PDF BW tetap mempertahankan warna asli; grayscale diatur pada mesin cetak. Pilihan halaman manual memakai nomor buku dengan offset Romawi. Kalkulasi manual jumlah halaman tidak dapat menentukan pasangan fisik duplex; masukkan jumlah sesuai rencana produksi.
+**Mengunggah folder ini saja tidak mengganti ikon instalasi bawaan Streamlit.**
+`page_icon` mengatur favicon halaman, bukan manifest instalasi platform.
 
-Diskon khusus hanya tersedia untuk admin dan menggantikan diskon isi otomatis pada pesanan aktif. Diskon finishing tetap mengikuti tabel. Nota berupa estimasi TXT, bukan bukti pembayaran. Riwayat admin menyimpan harga sebelum/sesudah, email, waktu, dan alasan.
+## 2. Paket instalasi PWA dengan identitas sendiri
 
-Sebelum produksi: uji login Google dengan akun admin/non-admin, koneksi database, persistensi setelah reboot, PDF produksi nyata, serta kesesuaian tarif. Kredensial layanan tidak tersedia pada saat paket disiapkan sehingga koneksi nyata harus diuji setelah pemasangan.
+Folder `pwa/` berisi halaman pembungkus, manifest, service worker, dan ikon.
+Terbitkan seluruh isinya pada hosting statis HTTPS, misalnya GitHub Pages,
+setelah menentukan alamat instalasinya. Path relatif mendukung hosting dalam subfolder.
+Untuk GitHub Pages berbasis folder, isi `pwa/` dapat ditempatkan pada folder
+`docs/` di repositori, kemudian pilih sumber Pages dari branch dan folder tersebut.
+Jangan mengunggah Secrets atau berkas database ke hosting statis.
 
-## Pembaruan v1.1.0
+Halaman pembungkus membuka aplikasi publik yang sudah ada:
+`https://litnus-printlab.streamlit.app/?embed=true`.
+Instal aplikasi dari **alamat pembungkus yang baru**, bukan dari alamat
+`streamlit.app`. Dialog instalasi mengambil nama Litnus PrintLab dan ikon LP
+dari manifest pembungkus. Ikon berukuran 192 dan 512 piksel; versi maskable
+memakai latar penuh dengan monogram di area tengah.
 
-Ekstrak ZIP di komputer. Jika aplikasi sudah terpasang, unggah app.py dan README.md ke halaman utama repositori GitHub. Kemudian buka folder .streamlit di GitHub dan unggah config.toml dari folder .streamlit hasil ekstrak. Commit ke main. Pengaturan Secrets yang sudah ada tetap dipakai. Untuk pemasangan baru, unggah semua isi ZIP dengan struktur folder yang sama.
+Jika aplikasi lama sudah terpasang, hapus instalasi lama lalu instal dari
+alamat pembungkus setelah nama dan ikon yang benar terlihat pada dialog.
+Paket ini tidak secara otomatis mengganti identitas instalasi lama.
 
-Sidebar menyediakan Kalkulator Cepat, Deteksi Warna PDF, Pilah Halaman PDF, dan Admin Tarif. Ketiga alat produksi dapat dipakai tanpa login. Login Google dan daftar admin tetap mengikuti Secrets. Petunjuk per menu tersedia melalui tombol ⓘ.
+## Batasan yang perlu diketahui
 
-Setiap menu menyimpan draf sendiri selama sesi Streamlit aktif. Draf dan unggahan tidak ditulis ke Neon. Sesi baru, tab baru, penyegaran browser, dan proses masuk/keluar dapat mereset draf. Tarif tersimpan di Neon dan dipakai bersama. Tema terang menggunakan mint dan teal. Tema gelap tersedia lewat menu Theme Streamlit. Bilah judul PWA dikendalikan browser.
+- Aplikasi Streamlit tetap memerlukan internet. Service worker hanya menyimpan
+  antarmuka pembungkus publik, bukan PDF, sesi, kredensial, atau hasil penghitungan.
+- Login Google, cookie, dan kebijakan iframe dapat membatasi akses melalui
+  pembungkus. Tombol **Buka langsung** membuka aplikasi pada tab terpisah untuk
+  akses penuh. Sesi login tab tersebut belum tentu terbagi dengan iframe.
+- Browser menentukan apakah tombol instalasi tersedia. Tombol di halaman
+  hanya muncul ketika browser mengirim event instalasi; menu browser juga
+  dapat digunakan. Tidak ada janji dukungan offline untuk pengolahan PDF.
+- Tampilan browser, login Google, dan dialog instalasi pada hosting tujuan
+  masih perlu diuji setelah deployment. Paket belum dinyatakan lolos uji
+  instalasi end-to-end.
 
-Sesudah deploy, masukkan judul dan jumlah halaman di Kalkulator Cepat. Pindah ke Pilah Halaman PDF, masukkan preliminaries dan unggah PDF, lalu kembali ke kedua menu untuk mengecek drafnya. Cek unduhan nota dan masuk ke Admin Tarif dengan akun Google yang sudah terdaftar. Uji juga satu jendela privat untuk memastikan akses tamu dapat menghitung dan halaman tarif meminta login.
+## Isi aset
 
-## Pembaruan v1.1.1
+- `wordmark.png`: logo lengkap transparan.
+- `icon-32.png`, `icon-192.png`, `icon-512.png`: ikon LP.
+- `favicon.ico`: ukuran 16, 32, dan 48 piksel dalam satu berkas.
+- `apple-touch-icon.png`: 180 piksel.
+- `icon-maskable-512.png`: ikon berlatar penuh untuk pemotongan bentuk OS.
 
-Revisi audit UI. Sidebar memisahkan alat produksi dari Admin Tarif. Menu aktif memakai teal tua dengan teks putih, dan warna ikon menyesuaikan tema. Halaman masuk memakai satu kartu biru yang menampung kedua tindakan, tanpa banner dashboard. Palet dashboard memakai mint dan teal dengan gradien yang lebih tipis.
+## Referensi teknis
 
-Untuk memperbarui v1.1.0, ekstrak ZIP lalu unggah app.py dan README.md ke halaman utama repositori. Commit ke main. File tema dan Secrets yang sudah terpasang tetap dapat dipakai.
-
-Pemeriksaan lokal Streamlit lulus untuk draf lintas menu, PDF manual, lepas PDF, nota, dan akses tamu. Pemeriksaan visual otomatis tertahan karena Chromium lokal gagal membuka socket. Setelah memasang, periksa Admin Tarif sebelum login pada tema terang dan gelap serta lebar ponsel. Pastikan tombol Google dan Lanjut tanpa login berada di dalam kartu, ikon terbaca, dan ketiga alat produksi dapat dibuka. Login Google nyata perlu dicek di deployment.
+- https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
+- https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest
+- https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/How_to/Define_app_icons
