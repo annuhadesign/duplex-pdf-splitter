@@ -21,7 +21,7 @@
     .slide.active { visibility: visible; }
     .slide.has-photo { grid-template-areas: "copy photo" "author photo"; grid-template-columns: minmax(0,1fr) 76px; column-gap: 18px; }
     .copy { grid-area: copy; min-width: 0; }
-    .topic { margin: 0 0 10px; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .035em; }
+    .topic { margin: 0 0 10px; color: #ffe6a7; font-size: 11px; font-weight: 600; letter-spacing: .035em; }
     blockquote { margin: 0; font-size: clamp(18px, 4.6vw, 21px); font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
     .original { margin: 12px 0 0; color: #fff; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
     .author { grid-area: author; min-width: 0; align-self: end; }
@@ -100,7 +100,7 @@
       quotes = args.quotes;
       if (!Array.isArray(quotes) || !quotes.length) return;
       interval = Math.max(8000, Number(args.interval_ms) || 12000);
-      storageKey = `litnus-quote-v2:${args.menu}`;
+      storageKey = `litnus-quote-v3:${args.menu}`;
       index = Number(args.start_index) || 0;
       try {
         const saved = JSON.parse(sessionStorage.getItem(storageKey));
@@ -117,11 +117,14 @@
         topic.textContent = quote.topic;
         const text = document.createElement('blockquote');
         text.textContent = `“${quote.translation}”`;
-        const original = document.createElement('p');
-        original.className = 'original';
-        original.lang = 'en';
-        original.textContent = `“${quote.original}”`;
-        copy.append(topic, text, original);
+        copy.append(topic, text);
+        if (quote.original) {
+          const original = document.createElement('p');
+          original.className = 'original';
+          original.lang = 'en';
+          original.textContent = `“${quote.original}”`;
+          copy.append(original);
+        }
         const author = document.createElement('div');
         author.className = 'author';
         const name = document.createElement('strong');
@@ -150,3 +153,4 @@
   </script>
 </body>
 </html>
+
