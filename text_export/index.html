@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{box-sizing:border-box}body{margin:0;padding:2px;font:14px/1.55 system-ui,sans-serif;color:#173b3b;background:transparent}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1}button{border:1px solid #9bc9c5;border-radius:12px;min-height:44px;padding:9px 15px;cursor:pointer;font:600 13px system-ui;background:#eff8f6;color:#095e5c}
+button[aria-selected=true],#copy{background:linear-gradient(120deg,#0b6e6d,#128f89);color:white;border-color:transparent;box-shadow:0 4px 10px #096c6b22}
+button:focus-visible,textarea:focus-visible{outline:3px solid #d2ab4a;outline-offset:2px}button:hover{filter:brightness(.96)}
+textarea{display:block;resize:vertical;width:100%;min-height:220px;height:280px;max-height:520px;padding:15px;border:1px solid #b4ceca;border-radius:14px;background:#ffffffa8;color:#233c3c;font:13px/1.65 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.actions button{flex:1}#message{font-size:12px;min-height:20px;margin:8px 0 0;color:#376360}#message.error{color:#8b3b22}
+</style></head><body>
+<div class="tabs" role="tablist" aria-label="Jenis dokumen">
+<button id="estimate" role="tab" aria-controls="preview" aria-selected="true">Estimasi</button>
+<button id="invoice" role="tab" aria-controls="preview" aria-selected="false" tabindex="-1">Nota tagihan</button></div>
+<textarea id="preview" readonly aria-label="Pratinjau teks estimasi"></textarea>
+<div class="actions"><button id="copy" type="button">Salin teks</button></div>
+<p id="message" role="status" aria-live="polite">Teks yang disalin dan diunduh sama dengan pratinjau.</p>
+<script>
+(() => {
+  const el = id => document.getElementById(id);
+  let args = {}, active = 'estimate', revision = 0, lastHeight = 0, signature = '';
+  const send = (type, payload={}) => window.parent.postMessage({isStreamlitMessage:true,type,...payload}, '*');
+  const height = () => {const next=document.body.scrollHeight+6;if(next!==lastHeight){lastHeight=next;send('streamlit:setFrameHeight',{height:next})}};
+  const message = (text,error=false) => {el('message').textContent=text;el('message').classList.toggle('error',error);height()};
+  function show(kind) {
+    active=kind; revision++;
+    el('preview').value=args[kind] || '';
+    el('preview').setAttribute('aria-label',kind==='estimate'?'Pratinjau teks estimasi':'Pratinjau teks nota tagihan');
+    for(const name of ['estimate','invoice']) {el(name).setAttribute('aria-selected',String(name===kind));el(name).tabIndex=name===kind?0:-1}
+    message('Teks yang disalin dan diunduh sama dengan pratinjau.');
+  }
+  for(const name of ['estimate','invoice']) {
+    el(name).onclick=()=>{show(name);send('streamlit:setComponentValue',{value:name,dataType:'json'})};
+    el(name).onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?'estimate':e.key==='End'?'invoice':active==='estimate'?'invoice':'estimate';show(next);el(next).focus();send('streamlit:setComponentValue',{value:next,dataType:'json'})}};
+  }
+  function manualCopy() {
+    el('preview').focus();el('preview').select();el('preview').setSelectionRange(0,el('preview').value.length);
+    try {return document.execCommand('copy')} catch (_) {return false}
+  }
+  el('copy').onclick=async()=>{
+    const current=revision, value=el('preview').value;
+    message('Menyalin teks…');
+    try {if(!navigator.clipboard?.writeText) throw new Error('fallback');
+      await Promise.race([navigator.clipboard.writeText(value),new Promise((_,reject)=>setTimeout(()=>reject(new Error('clipboard timeout')),1200))]);
+      if(current===revision)message('Teks berhasil disalin.');}
+    catch (_) {if(current!==revision)return;if(manualCopy())message('Teks berhasil disalin.');else message('Pilih Salin pada teks yang sudah diblok, atau tekan Ctrl+C / ⌘C.',true);}
+  };
+  window.addEventListener('message',event=>{
+    if(event.source!==window.parent || event.data?.type!=='streamlit:render')return;
+    const incoming=event.data.args || {}, next=JSON.stringify([incoming.estimate,incoming.invoice,incoming.filename,incoming.selected]);
+    if(next===signature)return;
+    signature=next;args=incoming;
+    const selected=['estimate','invoice'].includes(incoming.selected)?incoming.selected:active;
+    if(selected!==active || el('preview').value!==(incoming[selected]||''))show(selected);
+  });
+  new ResizeObserver(height).observe(document.body);
+  send('streamlit:componentReady',{apiVersion:1});height();
+})();
+</script></body></html>

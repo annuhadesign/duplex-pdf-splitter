@@ -1,4 +1,5 @@
 import copy
+import html
 import os
 import hashlib
 import base64
@@ -16,6 +17,13 @@ from engine import (
 )
 from settings import DEFAULT, setup, read, save, calculate, validate, connect
 from quote_card import render_quote_card
+from preflight import compare_pdf, target_dimensions
+from preflight_ui import (
+    CSS as PREFLIGHT_CSS, MENU_LABELS, MENU_HELP, info_html,
+    inspect_cached, render_report, render_comparison,
+)
+from print_documents import build_documents, safe_filename, with_adjustment
+from text_export import render_text_export
 
 BRAND_ASSETS = Path(__file__).resolve().parent / 'assets'
 
@@ -982,6 +990,7 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-w
 # ==========================================
 # STATE & HELPER FUNCTIONS
 # ==========================================
+st.markdown(PREFLIGHT_CSS, unsafe_allow_html=True)
 def go_to(page):
     st.session_state['workspace'] = page
 
@@ -1011,6 +1020,8 @@ def reset_prelim_and_selection(method_name):
 def remember_pdf(upload_key, pdf_key, method_name):
     upload = st.session_state.get(upload_key)
     reset_prelim_and_selection(method_name)
+    st.session_state[f'draft:{method_name}:paid'] = 0
+    st.session_state[f'widget:draft:{method_name}:paid'] = 0
     if upload is not None:
         st.session_state[pdf_key] = (upload.name, upload.getvalue())
         clean_title = os.path.splitext(upload.name)[0].replace('_', ' ').strip()
@@ -1026,6 +1037,8 @@ def remember_pdf(upload_key, pdf_key, method_name):
 def remove_pdf(upload_key, pdf_key, method_name):
     st.session_state.pop(pdf_key, None)
     st.session_state.pop(upload_key, None)
+    st.session_state[f'draft:{method_name}:paid'] = 0
+    st.session_state[f'widget:draft:{method_name}:paid'] = 0
     reset_prelim_and_selection(method_name)
     stored_title = f'draft:{method_name}:title'
     widget_title = f'widget:{stored_title}'
@@ -1096,7 +1109,8 @@ with col_nav:
                 target_container = nav_menu if method_name else nav_admin
                 with target_container:
                     st.button(
-                        f'![](data:image/svg+xml,{icon_uri}) {page}',
+                        f'![](data:image/svg+xml,{icon_uri}) {MENU_LABELS.get(page, page)} ⓘ',
+                        help=MENU_HELP[page],
                         key=f'btn_{page}',
                         type='primary' if active else 'secondary',
                         on_click=go_to,
@@ -1126,15 +1140,15 @@ with col_main:
         st.markdown(
             f'<div class="topbar-wrap">'
             f'<div>'
-            f'<div class="welcome-text">Welcome back, {user_full_name} 👋</div>'
-            f'<h1 class="page-main-title">{screen}</h1>'
+            f'<div class="welcome-text">Welcome back, {html.escape(user_full_name)} 👋</div>'
+            f'<div class="page-title-line"><h1 class="page-main-title">{MENU_LABELS.get(screen, screen)}</h1>{info_html(screen)}</div>'
             f'</div>'
             f'<div class="user-profile-bar">'
             f'<span class="top-icon-btn">{search_svg}</span>'
             f'<span class="top-icon-btn">{bell_svg}</span>'
             f'<div class="user-chip">'
-            f'<div class="user-avatar">{initials}</div>'
-            f'<span class="user-name">{user_full_name}</span>'
+            f'<div class="user-avatar">{html.escape(initials)}</div>'
+            f'<span class="user-name">{html.escape(user_full_name)}</span>'
             f'</div>'
             f'</div>'
             f'</div>',
@@ -1381,6 +1395,7 @@ with col_main:
             sensitivity = 25
             pct = 0.10
             run_analysis_clicked = False
+            geometry_report = preflight_result = None
 
             with st.container(key='card_naskah'):
                 st.markdown(
@@ -1434,6 +1449,7 @@ with col_main:
                             ),
                         )
 
+                        full_color_complexity_mode = bool(full_color_complexity_mode and not force)
                         sliders_disabled = bool(force or full_color_complexity_mode)
 
                         sc1, sc2 = st.columns(2)
@@ -1510,6 +1526,7 @@ with col_main:
 
                 toner_detail_placeholder = st.empty()
 
+        with (col_left if method == 'Jumlah halaman saja' else col_right):
             with st.container(key='card_spek'):
                 st.markdown(
                     '<div class="card-header-row">'
@@ -1531,6 +1548,23 @@ with col_main:
                 with st.container(key='accent_qty'):
                     qty = draft_widget(st.number_input, 'qty', 'Jumlah cetak (eksemplar)', min_value=1, value=1)
 
+                with st.expander('Ukuran akhir, bleed & penyesuaian berkas'):
+                    orientation = draft_widget(st.selectbox, 'orientation', 'Orientasi buku', options=['Potret', 'Lanskap'])
+                    edge_print = draft_widget(st.checkbox, 'edge_print', 'Cetak isi sampai tepi', value=False,
+                                              help='Aktifkan jika latar atau gambar menyentuh batas potong. Metadata bleed tetap perlu dicek bersama isi desain.')
+                    bleed_mm = draft_widget(st.number_input, 'bleed_mm', 'Bleed yang diminta per sisi (mm)',
+                                            min_value=0.0, max_value=10.0, value=5.0, step=0.5, disabled=not edge_print)
+                    has_adjustment = draft_widget(st.checkbox, 'has_adjustment', 'Tambahkan biaya penyesuaian berkas', value=False)
+                    adjustment_fee = draft_widget(st.number_input, 'adjustment_fee', 'Biaya penyesuaian sekali/order (Rp)',
+                                                  min_value=0, value=0, step=1000, disabled=not has_adjustment)
+                    if not has_adjustment:
+                        adjustment_fee = 0
+                    st.caption('Biaya diisi sesuai kesepakatan. Tidak dikalikan jumlah eksemplar.')
+                required_bleed = bleed_mm if edge_print else 0
+                target_mm = target_dimensions(size)
+                if target_mm and orientation == 'Lanskap':
+                    target_mm = target_mm[::-1]
+                print_size_label = f'{size} · {orientation}'
                 override = None
                 if admin:
                     with st.expander('Diskon khusus admin'):
@@ -1541,6 +1575,8 @@ with col_main:
                     data = uploaded[1]
                     try:
                         total = get_pdf_page_count(data)
+                        geometry_report = inspect_cached(data)
+                        preflight_result = compare_pdf(geometry_report, target_mm, required_bleed)
                         st.caption(f'Total terdeteksi: **{total} halaman PDF**')
                         if method == 'Analisis warna otomatis':
                             file_hash = hashlib.sha256(data).hexdigest()
@@ -1570,6 +1606,7 @@ with col_main:
                                 if saved and saved[:5] == current_sig:
                                     unpacked = saved[5]
                                     colors, blacks, cb, bb, raw_color_pages = unpacked[:5]
+                                    page_toner_pcts = unpacked[5] if len(unpacked) > 5 else {}
                                     if mode == 'Duplex (Bolak-balik)' and raw_color_pages and set(raw_color_pages) != set(colors):
                                         st.success('🔄 Duplex aktif: halaman pasangan otomatis ikut dimasukkan ke hasil warna.')
                                 else:
@@ -1609,6 +1646,11 @@ with col_main:
                             st.write('**Halaman Warna:**', ', '.join(map(str, colors)) or 'Tidak ada')
                             st.write('**Halaman Hitam Putih:**', ', '.join(map(str, blacks)) or 'Tidak ada')
 
+        with col_left:
+            if preflight_result:
+                render_report(preflight_result, data, uploaded[0], print_size_label,
+                              f'{method}:{hashlib.sha256(data).hexdigest()[:12]}')
+
         with col_right:
             total_pages_count = color + bw
             color_ratio_pct = int(round((color / total_pages_count) * 100)) if total_pages_count > 0 else 0
@@ -1633,9 +1675,15 @@ with col_main:
                     'avg_toner_pct': 0.0, 'toner_savings_total': 0, 'toner_savings_unit': 0, 'avg_page_rate': 0,
                 }
 
+                r = with_adjustment(r, adjustment_fee if total_pages_count else 0, config['dp'])
+                if uploaded and total_pages_count == 0:
+                    st.info('Ukuran berkas sudah diperiksa. Jalankan analisis warna atau pilih halaman agar biaya dapat dihitung.')
+                elif total_pages_count:
+                    st.caption(f'Subtotal cetak {rp(r["subtotal"])} · penyesuaian sekali/order {rp(r["adjustment"])}')
+
                 st.markdown(
                     f'<div class="card-header-row">'
-                    f'<h3 class="card-title">Statistik &amp; Ringkasan Biaya</h3>'
+                    f'<h3 class="card-title">Statistik &amp; Ringkasan Biaya</h3>' 
                     f'<span class="card-action-link">{size.split()[0]} • {paper}</span>'
                     f'</div>'
                     f'<div style="background: rgba(255,255,255,0.52); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 1rem 1rem; margin-bottom: 0.9rem;">'
@@ -1666,38 +1714,6 @@ with col_main:
                     )
 
                 if total_pages_count > 0:
-                    c_dl1, c_dl2 = st.columns(2)
-                    toner_note = (
-                        f"\nMode Full Colour Proporsional: Rata-rata cakupan warna {r['avg_toner_pct']}% | Tarif efektif {rp(r['avg_page_rate'])}/hlm (Hemat {rp(r['toner_savings_total'])})"
-                        if full_color_complexity_mode else ""
-                    )
-                    receipt = f"""LITNUS PRINTING - ESTIMASI BIAYA
-Judul: {title}
-Tarif versi: {version}
-Spesifikasi: {size} | {paper} | {mode} | {binding}
-Isi buku: {color} halaman warna + {bw} BW{toner_note}
-Jumlah: {qty} eksemplar
-Harga/eks: {rp(r['unit'])}
-Total: {rp(r['total'])}
-DP {config['dp']}%: {rp(r['dp'])}
-Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%"""
-                    c_dl1.download_button('Unduh Estimasi', receipt, f'Estimasi_{title}.txt', 'text/plain', use_container_width=True)
-
-                    invoice = f"""LITNUS PRINTING - NOTA TAGIHAN CETAK
-Pemesan: {user_full_name}
-Judul buku: {title}
-Spesifikasi: {size} | {paper} | {mode} | {binding}
-Isi buku: {color} halaman warna + {bw} halaman hitam putih ({qty} eksemplar){toner_note}
-Harga per eksemplar: {rp(r['unit'])}
-Diskon isi: {r['discount']}% | Diskon finishing: {r['finishing_discount']}%
-TOTAL TAGIHAN: {rp(r['total'])}
-DP {config['dp']}%: {rp(r['dp'])} | Sisa: {rp(r['total'] - r['dp'])}
-
-Rekening PT Literasi Nusantara Abadi Grup:
-- Mandiri: 144-00-2306065-7
-- BCA: 117-737-3737"""
-                    c_dl2.download_button('Unduh Nota TXT', invoice, f'Nota_{title}.txt', 'text/plain; charset=utf-8', use_container_width=True)
-
                     if cb or bb:
                         cp1, cp2 = st.columns(2)
                         if cb:
@@ -1727,6 +1743,41 @@ Rekening PT Literasi Nusantara Abadi Grup:
                 unsafe_allow_html=True,
             )
 
+            if total_pages_count > 0:
+                with st.container(key='card_documents'):
+                    st.subheader('Estimasi & nota')
+                    customer = draft_widget(st.text_input, 'customer', 'Nama pemesan', value='', placeholder='Nama pelanggan / instansi')
+                    paid = draft_widget(st.number_input, 'paid', 'Pembayaran yang sudah diterima (Rp)', min_value=0, value=0, step=1000,
+                                        help='Isi pembayaran aktual. Persentase DP hanya saran, tidak otomatis dianggap lunas.')
+                    notes = draft_widget(st.text_area, 'document_notes', 'Catatan untuk pelanggan', value='', height=80)
+                    if paid > r['total']:
+                        st.info(f'Kelebihan pembayaran {rp(paid - r["total"])} akan dicantumkan dalam nota.')
+                    receipt, invoice = build_documents(
+                        title=title, customer=customer, version=version, size=print_size_label, paper=paper,
+                        mode=mode, binding=binding, qty=qty, color=color, bw=bw, result=r, dp_percent=config['dp'],
+                        paid=paid, notes=notes, preflight_status=preflight_result['status'] if preflight_result else None,
+                        full_color=full_color_complexity_mode,
+                    )
+                    document_kind = render_text_export(receipt, invoice, safe_filename(title), key=f'documents:{method}')
+                    is_invoice = document_kind == 'invoice'
+                    st.download_button(
+                        'Unduh Nota TXT' if is_invoice else 'Unduh Estimasi TXT',
+                        invoice if is_invoice else receipt,
+                        f'{"Nota" if is_invoice else "Estimasi"}_{safe_filename(title)}.txt',
+                        'text/plain; charset=utf-8', key=f'download-document:{method}', use_container_width=True,
+                    )
+
             render_quote_card(screen)
+
+        if geometry_report:
+            with col_left:
+                price_for_size = (lambda selected_size: calculate_with_toner_complexity(
+                    config, selected_size, paper, mode, binding, qty, color, bw, override=override,
+                    full_color_complexity_mode=full_color_complexity_mode, page_toner_pcts=page_toner_pcts,
+                )) if total_pages_count > 0 else None
+                render_comparison(geometry_report, size_options, orientation, size, price_for_size,
+                                  adjustment_fee, config['dp'], method)
+
+
 
 
