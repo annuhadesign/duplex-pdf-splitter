@@ -1,11 +1,23 @@
 """One source of text for preview, clipboard, and TXT exports."""
 import re
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, ROUND_CEILING
+
+
+def round_unit_up(value):
+    """Harga jual/eks dibulatkan naik ke kelipatan Rp1.000; nol tetap nol."""
+    try:
+        amount = Decimal(str(value))
+    except InvalidOperation as exc:
+        raise ValueError('Harga per eks harus angka minimal 0.') from exc
+    if not amount.is_finite() or amount < 0:
+        raise ValueError('Harga per eks harus angka minimal 0.')
+    return int((amount / 1000).to_integral_value(rounding=ROUND_CEILING)) * 1000
 
 
 def with_special_discount(result, percent, qty, dp_percent):
-    """Potong harga lengkap/eks setelah diskon otomatis, sebelum jasa/order.
+    """Bulatkan harga lengkap/eks ke ribuan, lalu beri diskon khusus.
 
+    Pembulatan setelah diskon otomatis, sebelum diskon khusus dan jasa/order.
     Potongan dibulatkan ke rupiah terdekat (setengah dibulatkan naik) per eks.
     Angka diskon otomatis dan cakupan toner tetap menjadi rincian internal.
     """
@@ -18,9 +30,11 @@ def with_special_discount(result, percent, qty, dp_percent):
     if isinstance(qty, bool) or qty < 1 or int(qty) != qty:
         raise ValueError('Jumlah cetak harus bilangan bulat minimal 1.')
     value = dict(result)
-    before = int(result['unit'])
+    raw_unit = result['unit']
+    before = round_unit_up(raw_unit)
     cut = int((Decimal(before) * pct / 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
-    value.update(unit_before_special=before, special_discount_pct=float(pct),
+    value.update(unit_before_rounding=raw_unit, rounding_unit=before - raw_unit,
+                 unit_before_special=before, special_discount_pct=float(pct),
                  special_discount_unit=cut, special_discount_total=cut * qty,
                  unit=before - cut, total=(before - cut) * qty)
     value['dp'] = int(value['total'] * dp_percent / 100)

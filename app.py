@@ -1361,6 +1361,8 @@ with col_main:
                     sim_size = 'Unesco (15.5 x 23 cm)' if 'Unesco (15.5 x 23 cm)' in config['prices'] else list(config['prices'])[0]
                     old = calculate(config, sim_size, 'HVS 70', 'Duplex (Bolak-balik)', 'Soft Cover', 10, 0, 100)
                     new = calculate(draft, sim_size, 'HVS 70', 'Duplex (Bolak-balik)', 'Soft Cover', 10, 0, 100)
+                    old = with_special_discount(old, 0, 10, config['dp'])
+                    new = with_special_discount(new, 0, 10, draft['dp'])
                     st.metric(f'Simulasi 10 Eks ({sim_size.split()[0]} HVS 70, 100 BW)', rp(new['total']), rp(new['total'] - old['total']))
                     render_simulation(draft, calculate)
                     reason = st.text_input('Catatan alasan perubahan tarif')
@@ -1580,7 +1582,7 @@ with col_main:
                             special_discount_pct = draft_widget(
                                 st.number_input, 'special_discount_pct', 'Diskon khusus harga per eks (%)',
                                 min_value=0, max_value=100, value=0,
-                                help='Potongan tambahan dari harga lengkap per eks (isi + finishing) setelah diskon otomatis. Biaya penyesuaian berkas tidak ikut dipotong.',
+                                help='Harga lengkap per eks (isi + finishing) setelah diskon otomatis dibulatkan naik ke ribuan, lalu dipotong diskon khusus. Biaya penyesuaian berkas tidak ikut dipotong.',
                             )
                         st.caption('Nilai 0% tidak mengubah harga. Hanya diskon khusus di atas 0% yang dicantumkan pada estimasi dan nota pelanggan.')
 
@@ -1694,6 +1696,8 @@ with col_main:
                     st.info('Ukuran berkas sudah diperiksa. Jalankan analisis warna atau pilih halaman agar biaya dapat dihitung.')
                 elif total_pages_count:
                     st.caption(f'Subtotal cetak {rp(r["subtotal"])} · penyesuaian sekali/order {rp(r["adjustment"])}')
+                    st.caption(f'Harga kalkulasi {rp(r["unit_before_rounding"])}/eks → '
+                               f'pembulatan ke atas ke ribuan {rp(r["unit_before_special"])}/eks, sebelum diskon khusus.')
                     if special_discount_pct > 0:
                         st.caption(f'Harga sebelum diskon khusus {rp(r["unit_before_special"])}/eks · '
                                    f'diskon khusus {special_discount_pct}% = {rp(r["special_discount_unit"])}/eks · '
@@ -1721,8 +1725,7 @@ with col_main:
                 )
 
                 if full_color_complexity_mode and total_pages_count > 0:
-                    if special_discount_pct > 0:
-                        st.caption('Rincian tarif isi dan penghematan toner berikut dihitung sebelum diskon khusus.')
+                    st.caption('Rincian tarif isi dan penghematan toner berikut dihitung sebelum pembulatan harga per eks dan diskon khusus.')
                     st.markdown(
                         f'<div style="background: rgba(13, 122, 118, 0.10); border: 1px solid rgba(13, 122, 118, 0.25); '
                         f'border-radius: 14px; padding: 0.75rem 0.95rem; margin-bottom: 0.85rem; font-size: 0.8rem; color: #0b5855; line-height: 1.55;">'

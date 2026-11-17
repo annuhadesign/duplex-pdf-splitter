@@ -1,5 +1,6 @@
 """Tampilan HPP. Pemanggil wajib memeriksa hak admin di server."""
 import streamlit as st
+from print_documents import with_special_discount
 from engine import format_rupiah as rp
 from production_costs import (PAPERS, PAPER_COSTS, get_costs,
                               calculate_production)
@@ -106,6 +107,9 @@ def render_simulation(draft, calculate):
         st.info('Isi jumlah halaman untuk melihat simulasi HPP dan laba.')
         return
     result = calculate(draft, size, paper, mode, binding, qty, color, bw)
+    result = with_special_discount(result, 0, qty, draft['dp'])
+    st.caption(f'Harga kalkulasi {rp(result["unit_before_rounding"])}/eks → '
+               f'pembulatan ke atas ke ribuan {rp(result["unit"])}/eks.')
     st.caption(f'Diskon isi {result["discount"]}% · diskon finishing jual {result["finishing_discount"]}% · '
                'Simulasi memakai tarif warna penuh. Cakupan warna mengikuti hasil aktual di menu Analisis PDF.')
     render_production(draft, size, paper, qty, color, bw, result, show_title=False)
