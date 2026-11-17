@@ -3,6 +3,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 import streamlit as st
 from engine import PRICING_MATRIX
+from production_costs import COST_KEY, validate_costs
 
 DEFAULT = {
     'prices': PRICING_MATRIX,
@@ -51,6 +52,8 @@ def save(data, version, reason):
     read_cached.clear()
 
 def validate(d):
+    if COST_KEY in d:
+        validate_costs(d[COST_KEY])
     if not 0 <= d['dp'] <= 100:
         raise ValueError('DP harus 0–100%.')
     if d['simplex'] <= 0 or d['hardcover'] <= 0:

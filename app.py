@@ -24,6 +24,8 @@ from preflight_ui import (
 )
 from print_documents import build_documents, safe_filename, with_adjustment
 from text_export import render_text_export
+from production_costs import COST_KEY
+from production_costs_ui import edit_costs, render_production, render_simulation
 
 BRAND_ASSETS = Path(__file__).resolve().parent / 'assets'
 
@@ -563,6 +565,8 @@ header[data-testid="stHeader"] {
 .st-key-card_admin_info,
 .st-key-card_admin_panel,
 .st-key-card_admin_tiers,
+.st-key-card_admin_hpp,
+.st-key-card_hpp,
 .st-key-card_admin_save,
 .st-key-card_session_google,
 .st-key-card_session_guest {
@@ -1332,10 +1336,13 @@ with col_main:
                 draft['finishing_discount'] = c2.number_input('Tambahan diskon (%)', 0, 100, int(config['finishing_discount']))
                 draft['finishing_cap'] = c3.number_input('Batas diskon finishing (%)', 0, 100, int(config['finishing_cap']))
 
+            with st.container(key='card_admin_hpp'):
+                draft[COST_KEY] = edit_costs(config, version)
+
             with st.container(key='card_admin_save'):
                 st.markdown(
                     '<div class="card-header-row">'
-                    '<h3 class="card-title">3. Simulasi &amp; Simpan Perubahan</h3>'
+                    '<h3 class="card-title">4. Simulasi &amp; Simpan Perubahan</h3>'
                     '<span class="card-action-link">Verifikasi Tarif</span>'
                     '</div>',
                     unsafe_allow_html=True,
@@ -1355,13 +1362,14 @@ with col_main:
                     old = calculate(config, sim_size, 'HVS 70', 'Duplex (Bolak-balik)', 'Soft Cover', 10, 0, 100)
                     new = calculate(draft, sim_size, 'HVS 70', 'Duplex (Bolak-balik)', 'Soft Cover', 10, 0, 100)
                     st.metric(f'Simulasi 10 Eks ({sim_size.split()[0]} HVS 70, 100 BW)', rp(new['total']), rp(new['total'] - old['total']))
+                    render_simulation(draft, calculate)
                     reason = st.text_input('Catatan alasan perubahan tarif')
                     if st.button('Simpan & Terapkan Perubahan Tarif', type='primary', disabled=not reason.strip(), use_container_width=True):
                         save(draft, version, reason.strip())
-                        st.success('Tarif berhasil diperbarui.')
+                        st.success('Tarif jual dan HPP berhasil diperbarui.')
                         st.rerun()
-                except (ValueError, TypeError, KeyError):
-                    st.error('Pastikan format angka valid dan biaya finishing sama pada ukuran kertas yang sama.')
+                except (ValueError, TypeError, KeyError) as exc:
+                    st.error(f'Perubahan belum disimpan: {exc}')
 
                 with st.expander('Riwayat Perubahan Tarif'):
                     with connect() as c:
@@ -1742,6 +1750,10 @@ with col_main:
                 f'</div>',
                 unsafe_allow_html=True,
             )
+
+            if admin and total_pages_count > 0:
+                with st.container(key='card_hpp'):
+                    render_production(config, size, paper, qty, color, bw, r)
 
             if total_pages_count > 0:
                 with st.container(key='card_documents'):
