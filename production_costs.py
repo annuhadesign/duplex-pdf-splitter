@@ -13,12 +13,12 @@ PAPER_COSTS = {
     'A4': (44, 60),
 }
 DEFAULT_COSTS = {
+    'schema_version': 2,
     'finishing': 6000,
     'rates': {
         size: {
             paper: {'paper': prices[i], 'bw_toner': 25,
-                    # Data HVS warna belum diberikan, jangan dianggap nol.
-                    'color_toner': None if paper == 'HVS 70' else 500}
+                    'color_toner': 500}
             for i, paper in enumerate(PAPERS)
         }
         for size, prices in PAPER_COSTS.items()
@@ -27,8 +27,20 @@ DEFAULT_COSTS = {
 
 
 def get_costs(config):
-    """Konfigurasi lama tetap bisa dipakai tanpa mengganti tarif jual di Neon."""
-    return deepcopy(config.get(COST_KEY, DEFAULT_COSTS))
+    """Isi tarif HVS warna kosong dari paket awal; pertahankan tarif admin.
+
+    Normalisasi berlaku saat dibaca, termasuk konfigurasi lama di Neon.
+    Saat admin menyimpan, schema_version ikut tersimpan sehingga pengosongan
+    tarif yang disengaja di versi berikutnya tetap dianggap belum lengkap.
+    """
+    costs = deepcopy(config.get(COST_KEY, DEFAULT_COSTS))
+    if costs.get('schema_version', 1) < 2:
+        for size in PAPER_COSTS:
+            rate = costs.get('rates', {}).get(size, {}).get('HVS 70')
+            if isinstance(rate, dict) and rate.get('color_toner') is None:
+                rate['color_toner'] = 500
+        costs['schema_version'] = 2
+    return costs
 
 
 def size_family(size):
@@ -102,3 +114,4 @@ def calculate_production(config, size, paper, qty, color, bw, sales_total):
         'profit_total': profit, 'profit_unit': profit / qty if complete else None,
         'margin_pct': profit / sales_total * 100 if complete and sales_total else None,
     }
+

@@ -17,7 +17,7 @@ def edit_costs(config, version):
             rows.append({'Ukuran': size, 'Kertas': paper, 'Kertas / hlm': rate['paper'],
                          'Toner BW / hlm': rate['bw_toner'], 'Toner warna / hlm': rate['color_toner']})
     edited = st.data_editor(
-        rows, key=f'hpp-rates:{version}', hide_index=True, use_container_width=True,
+        rows, key=f'hpp-rates-v2:{version}', hide_index=True, use_container_width=True,
         disabled=['Ukuran', 'Kertas'], num_rows='fixed',
         column_config={
             name: st.column_config.NumberColumn(name, min_value=0, step=1, format='%d', required=required)
@@ -41,8 +41,8 @@ def edit_costs(config, version):
     st.caption('HPP isi = halaman BW × (kertas + toner BW) + halaman warna × (kertas + toner warna). '
                'Finishing ditambahkan satu kali per eksemplar, tanpa diskon jumlah cetak.')
     if any(costs['rates'][s][p]['color_toner'] is None for s in PAPER_COSTS for p in PAPERS):
-        st.info('Toner HVS 70 warna belum tercantum dalam data awal. Isi sel yang kosong setelah tarif '
-                'dipastikan. HPP dan laba pesanan yang membutuhkan tarif kosong belum akan ditampilkan.')
+        st.info('Ada tarif toner warna yang kosong. Lengkapi sebelum menghitung pesanan warna. '
+                'Tarif awal toner warna HVS 70 dan BP 57 adalah Rp500/halaman.')
     return costs
 
 
@@ -109,3 +109,4 @@ def render_simulation(draft, calculate):
     st.caption(f'Diskon isi {result["discount"]}% · diskon finishing jual {result["finishing_discount"]}% · '
                'Simulasi memakai tarif warna penuh. Cakupan warna mengikuti hasil aktual di menu Analisis PDF.')
     render_production(draft, size, paper, qty, color, bw, result, show_title=False)
+

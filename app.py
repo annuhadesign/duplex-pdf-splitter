@@ -22,7 +22,7 @@ from preflight_ui import (
     CSS as PREFLIGHT_CSS, MENU_LABELS, MENU_HELP, info_html,
     inspect_cached, render_report, render_comparison,
 )
-from print_documents import build_documents, safe_filename, with_adjustment
+from print_documents import build_documents, safe_filename, with_adjustment, with_special_discount
 from text_export import render_text_export
 from production_costs import COST_KEY
 from production_costs_ui import edit_costs, render_production, render_simulation
@@ -1573,11 +1573,16 @@ with col_main:
                 if target_mm and orientation == 'Lanskap':
                     target_mm = target_mm[::-1]
                 print_size_label = f'{size} · {orientation}'
-                override = None
+                special_discount_pct = 0
                 if admin:
                     with st.expander('Diskon khusus admin'):
-                        if draft_widget(st.checkbox, 'override_enabled', 'Terapkan diskon manual'):
-                            override = draft_widget(st.number_input, 'override', 'Diskon isi (%)', min_value=0, max_value=100, value=0)
+                        if draft_widget(st.checkbox, 'special_discount_enabled', 'Terapkan diskon khusus'):
+                            special_discount_pct = draft_widget(
+                                st.number_input, 'special_discount_pct', 'Diskon khusus harga per eks (%)',
+                                min_value=0, max_value=100, value=0,
+                                help='Potongan tambahan dari harga lengkap per eks (isi + finishing) setelah diskon otomatis. Biaya penyesuaian berkas tidak ikut dipotong.',
+                            )
+                        st.caption('Nilai 0% tidak mengubah harga. Hanya diskon khusus di atas 0% yang dicantumkan pada estimasi dan nota pelanggan.')
 
                 if uploaded:
                     data = uploaded[1]
@@ -1674,7 +1679,7 @@ with col_main:
                     qty,
                     color,
                     bw,
-                    override=override,
+                    override=None,
                     full_color_complexity_mode=full_color_complexity_mode,
                     page_toner_pcts=page_toner_pcts,
                 ) if total_pages_count > 0 else {
@@ -1683,11 +1688,16 @@ with col_main:
                     'avg_toner_pct': 0.0, 'toner_savings_total': 0, 'toner_savings_unit': 0, 'avg_page_rate': 0,
                 }
 
+                r = with_special_discount(r, special_discount_pct if total_pages_count else 0, qty, config['dp'])
                 r = with_adjustment(r, adjustment_fee if total_pages_count else 0, config['dp'])
                 if uploaded and total_pages_count == 0:
                     st.info('Ukuran berkas sudah diperiksa. Jalankan analisis warna atau pilih halaman agar biaya dapat dihitung.')
                 elif total_pages_count:
                     st.caption(f'Subtotal cetak {rp(r["subtotal"])} · penyesuaian sekali/order {rp(r["adjustment"])}')
+                    if special_discount_pct > 0:
+                        st.caption(f'Harga sebelum diskon khusus {rp(r["unit_before_special"])}/eks · '
+                                   f'diskon khusus {special_discount_pct}% = {rp(r["special_discount_unit"])}/eks · '
+                                   f'harga akhir {rp(r["unit"])}/eks. Potongan dibulatkan ke rupiah terdekat per eks.')
 
                 st.markdown(
                     f'<div class="card-header-row">'
@@ -1711,6 +1721,8 @@ with col_main:
                 )
 
                 if full_color_complexity_mode and total_pages_count > 0:
+                    if special_discount_pct > 0:
+                        st.caption('Rincian tarif isi dan penghematan toner berikut dihitung sebelum diskon khusus.')
                     st.markdown(
                         f'<div style="background: rgba(13, 122, 118, 0.10); border: 1px solid rgba(13, 122, 118, 0.25); '
                         f'border-radius: 14px; padding: 0.75rem 0.95rem; margin-bottom: 0.85rem; font-size: 0.8rem; color: #0b5855; line-height: 1.55;">'
@@ -1783,10 +1795,10 @@ with col_main:
 
         if geometry_report:
             with col_left:
-                price_for_size = (lambda selected_size: calculate_with_toner_complexity(
-                    config, selected_size, paper, mode, binding, qty, color, bw, override=override,
+                price_for_size = (lambda selected_size: with_special_discount(calculate_with_toner_complexity(
+                    config, selected_size, paper, mode, binding, qty, color, bw, override=None,
                     full_color_complexity_mode=full_color_complexity_mode, page_toner_pcts=page_toner_pcts,
-                )) if total_pages_count > 0 else None
+                ), special_discount_pct, qty, config['dp'])) if total_pages_count > 0 else None
                 render_comparison(geometry_report, size_options, orientation, size, price_for_size,
                                   adjustment_fee, config['dp'], method)
 
